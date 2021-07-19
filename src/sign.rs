@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use openpgp::cert::Cert;
 use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
-use openpgp::serialize::stream::{Armorer, LiteralWriter, Message, Signer};
+use openpgp::serialize::stream::{Message, Signer};
 use sequoia_openpgp as openpgp;
 use std::io::Write;
 use std::path::Path;
@@ -28,9 +28,7 @@ pub fn sign_message(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
     let keypair = keypair.unwrap().key().clone().into_keypair()?;
     let mut data_sink = Vec::new();
     let message = Message::new(&mut data_sink);
-    let message = Armorer::new(message).build()?;
-    let message = Signer::new(message, keypair).cleartext().build()?;
-    let mut message = LiteralWriter::new(message).build()?;
+    let mut message = Signer::new(message, keypair).cleartext().build()?;
     message.write_all(content)?;
     message.finalize()?;
 

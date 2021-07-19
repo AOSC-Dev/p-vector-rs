@@ -1,6 +1,7 @@
 //! Release file generation module
 
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -126,7 +127,10 @@ fn create_release_files(
     ttl: u64,
 ) -> Result<()> {
     use std::convert::TryInto;
+    use std::fs::File as StdFile;
+
     let cert = if let Some(cert) = &config.cert {
+        info!("Signing release files using certificate: {}", cert);
         Some(load_certificate(cert)?)
     } else {
         None
@@ -176,9 +180,12 @@ fn create_release_files(
         if let Some(ref cert) = cert {
             // TODO: don't fail when signing failed
             let signed = sign_message(&cert, rendered.as_bytes())?;
-            dbg!(std::str::from_utf8(&signed).unwrap());
+            let mut f = StdFile::create(branch_root.join("InRelease"))?;
+            f.write_all(&signed)?;
         } else {
-            warn!("Certificate not found. Release file not signed.");
+            warn!("Certificate not found or not available. Release file not signed.");
+            let mut f = StdFile::create(branch_root.join("Release"))?;
+            f.write_all(rendered.as_bytes())?;
         }
     }
 
