@@ -1,0 +1,11 @@
+Origin: <%- origin %>
+Label: <%- label %>
+Suite: <%- suite %>
+Codename: <%- codename %>
+Description: <%- description %>
+Date: <%- date %>
+Valid-Until: <%- valid_until %>
+Architectures: <%- architectures.join(" ") %>
+Components: <%- components.join(" ") %>
+SHA256:<% for c in files { %>
+ <%- c.2 %> <%- c.1 %> <%- c.0 %><% } %>

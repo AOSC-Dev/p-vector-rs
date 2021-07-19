@@ -1,0 +1,27 @@
+[config]
+# PostgreSQL connection string
+db_pgconn = "postgresql://localhost/packages"
+# Path to repository
+path = "/mirror/debs"
+# Auto-discover function
+discover = true
+# Brand name
+origin = "AOSC"
+# Force-refresh interval (in days)
+ttl = 14
+# Label name
+label = "AOSC OS"
+# Code name
+codename = "Fsck"
+
+[[branch]]
+# Branch name
+name = "stable"
+# Branch description
+desc = "AOSC OS Repository - Stable"
+
+[[branch]]
+name = "testing"
+desc = "AOSC OS Repository - Testing"
+# Branch-specific force-refresh interval (7 days)
+ttl = 7
