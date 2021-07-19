@@ -29,11 +29,6 @@ pub struct Config {
     pub branch: Vec<BranchConfig>,
 }
 
-pub struct BranchRefreshConfig {
-    pub default: u64,
-    pub branch: HashMap<String, u64>,
-}
-
 #[derive(Clone)]
 pub struct ReleaseConfig {
     // TODO: add cert info
@@ -57,20 +52,6 @@ pub fn convert_branch_description_config(config: &Config) -> ReleaseConfig {
         origin: default.origin.clone(),
         codename: default.codename.clone(),
         cert: default.certificate.clone(),
-    }
-}
-
-pub fn convert_branch_refresh_config(config: &Config) -> BranchRefreshConfig {
-    let mut branch = HashMap::new();
-    for b in &config.branch {
-        if let Some(ttl) = b.ttl {
-            branch.insert(b.name.clone(), ttl);
-        }
-    }
-
-    BranchRefreshConfig {
-        default: config.config.ttl,
-        branch,
     }
 }
 

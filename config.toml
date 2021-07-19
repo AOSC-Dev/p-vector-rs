@@ -12,7 +12,7 @@ ttl = 14
 # Label name
 label = "AOSC OS"
 # Code name
-codename = "Fsck"
+codename = "Hotfix"
 # Signing private key file (the certificate must include a signing (sub-)key)
 certificate = "/etc/p-vector/sign.key"
 

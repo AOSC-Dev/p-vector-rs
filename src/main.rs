@@ -114,15 +114,19 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     let pool_path = Path::new(&config.config.path).join("pool");
     let topics = spawn_blocking(move || scan::discover_topics_components(&pool_path)).await??;
     info!("{} topics discovered.", topics.len());
-    let refresh_config = config::convert_branch_refresh_config(&config);
-    let needs_regenerate = generate::need_regenerate(pool, mirror_root, &refresh_config).await?;
+    let needs_regenerate = generate::need_regenerate(pool, mirror_root).await?;
     let mut tasks = Vec::new();
-    'topic: for topic in topics {
+    for topic in topics {
+        let mut skip = true;
         for t in needs_regenerate.iter() {
             if topic.starts_with(t) {
-                info!("Skipping {}", topic.display());
-                continue 'topic;
+                skip = false;
+                break;
             }
+        }
+        if skip {
+            info!("Skipping {}", topic.display());
+            continue;
         }
         let name = topic.to_string_lossy().to_string();
         let name_clone = name.clone();

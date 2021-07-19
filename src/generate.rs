@@ -20,7 +20,7 @@ use tokio::fs::{create_dir_all, metadata, File};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::task::spawn_blocking;
 
-use crate::config::{BranchRefreshConfig, ReleaseConfig};
+use crate::config::ReleaseConfig;
 use crate::scan::{mtime, sha256sum};
 use crate::sign::{load_certificate, sign_message};
 
@@ -349,7 +349,7 @@ GROUP BY p.package, p.version, p.repo"#,
 }
 
 /// Check if the branch needs refreshing. TTL is in days.
-async fn need_refresh(inrel_path: &Path, ttl: u64) -> Result<bool> {
+async fn need_refresh(inrel_path: &Path) -> Result<bool> {
     let mut f = File::open(inrel_path).await?;
     let mut content = Vec::new();
     f.read_to_end(&mut content).await?;
@@ -359,7 +359,7 @@ async fn need_refresh(inrel_path: &Path, ttl: u64) -> Result<bool> {
         time::parse(captured_str, DEB822_DATE).map_err(|e| anyhow!(e))?;
     let parsed_timestamp = parsed.to_offset(offset!(+0)).unix_timestamp();
     let system_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-    let projected_timestamp = system_time + (ttl * 24 * 3600);
+    let projected_timestamp = system_time + (1 * 24 * 3600);
 
     Ok(projected_timestamp >= parsed_timestamp as u64)
 }
@@ -367,7 +367,6 @@ async fn need_refresh(inrel_path: &Path, ttl: u64) -> Result<bool> {
 pub async fn need_regenerate(
     pool: &PgPool,
     mirror_root: &Path,
-    ttl_config: &BranchRefreshConfig,
 ) -> Result<Vec<String>> {
     let dist_path = mirror_root.join("dists");
     let mut needs_regenerate = Vec::new();
@@ -381,13 +380,9 @@ pub async fn need_regenerate(
         let inrelease_info = metadata(&inrelease_path).await;
         if let Ok(metadata) = inrelease_info {
             let mtime = mtime(&metadata).unwrap_or(0);
-            let this_ttl = ttl_config
-                .branch
-                .get(&record.branch)
-                .unwrap_or(&ttl_config.default);
             if let Some(modified) = record.modified {
                 if mtime >= modified as u64
-                    && !need_refresh(&inrelease_path, *this_ttl)
+                    && !need_refresh(&inrelease_path)
                         .await
                         .unwrap_or(true)
                 {
