@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, Result};
 use async_compression::tokio::write::{GzipEncoder, XzEncoder};
-use log::{error, info};
+use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
 use nom::sequence::preceded;
 use nom::IResult;
@@ -21,6 +21,7 @@ use tokio::task::spawn_blocking;
 
 use crate::config::{BranchRefreshConfig, ReleaseConfig};
 use crate::scan::{mtime, sha256sum};
+use crate::sign::{load_certificate, sign_message};
 
 const DEB822_DATE: &str = "%a, %d %b %Y %H:%M:%S %z";
 
@@ -125,6 +126,11 @@ fn create_release_files(
     ttl: u64,
 ) -> Result<()> {
     use std::convert::TryInto;
+    let cert = if let Some(cert) = &config.cert {
+        Some(load_certificate(cert)?)
+    } else {
+        None
+    };
 
     for m in meta {
         info!("Generating InRelease files for {}", m.branch);
@@ -162,7 +168,18 @@ fn create_release_files(
             files: release_files.unwrap(),
         })
         .render_once();
-        dbg!(rendered);
+        if let Err(e) = rendered {
+            error!("Failed to generate release: {:?}", e);
+            continue;
+        }
+        let rendered = rendered.unwrap();
+        if let Some(ref cert) = cert {
+            // TODO: don't fail when signing failed
+            let signed = sign_message(&cert, rendered.as_bytes())?;
+            dbg!(std::str::from_utf8(&signed).unwrap());
+        } else {
+            warn!("Certificate not found. Release file not signed.");
+        }
     }
 
     Ok(())

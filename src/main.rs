@@ -19,6 +19,7 @@ mod gc;
 mod generate;
 mod parser;
 mod scan;
+mod sign;
 mod sync;
 
 macro_rules! log_error {

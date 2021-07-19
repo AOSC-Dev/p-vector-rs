@@ -12,6 +12,7 @@ pub struct GeneralConfig {
     pub ttl: u64,
     pub label: String,
     pub codename: String,
+    certificate: Option<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -40,6 +41,7 @@ pub struct ReleaseConfig {
     pub label: String,
     pub codename: String,
     pub descriptions: HashMap<String, String>,
+    pub cert: Option<String>,
 }
 
 pub fn convert_branch_description_config(config: &Config) -> ReleaseConfig {
@@ -54,6 +56,7 @@ pub fn convert_branch_description_config(config: &Config) -> ReleaseConfig {
         label: default.label.clone(),
         origin: default.origin.clone(),
         codename: default.codename.clone(),
+        cert: default.certificate.clone(),
     }
 }
 

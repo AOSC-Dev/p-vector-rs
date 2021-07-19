@@ -13,6 +13,8 @@ ttl = 14
 label = "AOSC OS"
 # Code name
 codename = "Fsck"
+# Signing certificate file
+certificate = "/etc/p-vector/sign.crt"
 
 [[branch]]
 # Branch name

@@ -23,6 +23,7 @@ faster-hex = "0.6"
 crossbeam-queue = "0.3"
 tempfile = "3.2"
 time = { version = "0.2", default-features = false }
+sequoia-openpgp = { version = "1.3", features = ["crypto-nettle"], default-features = false }
 # parser implementations
 nom = "^6"
 toml = "0.5"
@@ -35,5 +36,5 @@ argh = "0.1"
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
 sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
 futures = "0.3"
-async-compression = { version = "*", features = ["tokio", "gzip", "xz"] }
+async-compression = { version = "0.3", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
