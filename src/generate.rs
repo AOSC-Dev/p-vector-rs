@@ -364,10 +364,7 @@ async fn need_refresh(inrel_path: &Path) -> Result<bool> {
     Ok(projected_timestamp >= parsed_timestamp as u64)
 }
 
-pub async fn need_regenerate(
-    pool: &PgPool,
-    mirror_root: &Path,
-) -> Result<Vec<String>> {
+pub async fn need_regenerate(pool: &PgPool, mirror_root: &Path) -> Result<Vec<String>> {
     let dist_path = mirror_root.join("dists");
     let mut needs_regenerate = Vec::new();
     let records = sqlx::query!(
@@ -381,10 +378,7 @@ pub async fn need_regenerate(
         if let Ok(metadata) = inrelease_info {
             let mtime = mtime(&metadata).unwrap_or(0);
             if let Some(modified) = record.modified {
-                if mtime >= modified as u64
-                    && !need_refresh(&inrelease_path)
-                        .await
-                        .unwrap_or(true)
+                if mtime >= modified as u64 && !need_refresh(&inrelease_path).await.unwrap_or(true)
                 {
                     continue;
                 }

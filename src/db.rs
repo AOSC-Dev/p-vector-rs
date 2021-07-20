@@ -1,6 +1,6 @@
 use anyhow::Result;
-use sqlx::{Executor, PgPool};
 use log::info;
+use sqlx::{Executor, PgPool};
 
 const PV_QA_SQL_SCRIPT: &str = include_str!("../sql/pkgissues.sql");
 

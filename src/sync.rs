@@ -55,10 +55,11 @@ async fn sync_db(pool: &PgPool, db_path: &Path) -> Result<()> {
     Ok(())
 }
 
+#[cfg(unix)]
 fn change_permissions(f: &mut File) -> Result<()> {
-    use std::os::unix::prelude::AsRawFd;
-    use nix::sys::stat::Mode;
     use nix::sys::stat::fchmod;
+    use nix::sys::stat::Mode;
+    use std::os::unix::prelude::AsRawFd;
 
     let fd = f.as_raw_fd();
     fchmod(fd, Mode::from_bits_truncate(0o666))?;
@@ -94,8 +95,18 @@ pub async fn sync_db_updates(pool: &PgPool) -> Result<()> {
             info!("{} update to date.", db);
             continue;
         }
-        spawn_blocking(move || change_permissions(&mut temp_file)).await??;
+        #[cfg(unix)]
+        {
+            spawn_blocking(move || change_permissions(&mut temp_file)).await??;
+        }
         sync_db(pool, &temp_path).await?;
+        sqlx::query!(
+            "INSERT INTO pv_dbsync VALUES ($1, $2, now()) ON CONFLICT (name) DO UPDATE SET etag=$2",
+            db,
+            &new_etag
+        )
+        .execute(pool)
+        .await?;
     }
 
     Ok(())
