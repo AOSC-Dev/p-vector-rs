@@ -7,7 +7,7 @@ use async_compression::tokio::write::GzipDecoder;
 use log::info;
 use reqwest::Client;
 use sqlx::{Executor, PgPool};
-use tempfile::NamedTempFile;
+use tempfile::Builder;
 use tokio::{fs::File, io::AsyncWriteExt, task::spawn_blocking};
 
 use crate::db::load_fdw_ext;
@@ -55,6 +55,17 @@ async fn sync_db(pool: &PgPool, db_path: &Path) -> Result<()> {
     Ok(())
 }
 
+fn change_permissions(f: &mut File) -> Result<()> {
+    use std::os::unix::prelude::AsRawFd;
+    use nix::sys::stat::Mode;
+    use nix::sys::stat::fchmod;
+
+    let fd = f.as_raw_fd();
+    fchmod(fd, Mode::from_bits_truncate(0o666))?;
+
+    Ok(())
+}
+
 pub async fn sync_db_updates(pool: &PgPool) -> Result<()> {
     info!("Synchronizing databases ...");
     load_fdw_ext(pool).await?;
@@ -68,15 +79,22 @@ pub async fn sync_db_updates(pool: &PgPool) -> Result<()> {
         } else {
             String::new()
         };
-        let temp = spawn_blocking(|| NamedTempFile::new_in("/dev/shm/")).await??;
-        let temp_path = temp.path().to_owned();
-        let mut temp_file = File::from_std(temp.into_file());
+        let temp = spawn_blocking(|| {
+            Builder::new()
+                .suffix(".db")
+                .prefix("pvsync-")
+                .tempfile_in("/dev/shm/")
+        })
+        .await??;
+        let temp_path = temp.into_temp_path();
+        let mut temp_file = File::create(&temp_path).await?;
         let new_etag = download_db(&mut temp_file, &format!("{}.gz", db), &etag).await?;
         let new_etag = std::str::from_utf8(&new_etag)?;
         if new_etag == &etag {
             info!("{} update to date.", db);
             continue;
         }
+        spawn_blocking(move || change_permissions(&mut temp_file)).await??;
         sync_db(pool, &temp_path).await?;
     }
 

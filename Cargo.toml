@@ -38,3 +38,6 @@ sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "macros", "pos
 futures = "0.3"
 async-compression = { version = "0.3", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
+
+[target.'cfg(unix)'.dependencies]
+nix = "0.22"
