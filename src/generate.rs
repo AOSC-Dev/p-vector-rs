@@ -1,6 +1,6 @@
 //! Release file generation module
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -213,8 +213,19 @@ pub async fn render_releases(
     pool: &PgPool,
     mirror_root: &Path,
     config: ReleaseConfig,
+    regenerate_list: &[String],
 ) -> Result<()> {
+    let mut regenerate_set = HashSet::new();
+    regenerate_set.reserve(regenerate_list.len());
+    for r in regenerate_list {
+        regenerate_set.insert(r);
+    }
+
     let branches = get_branch_metadata(pool).await?;
+    let branches = branches
+        .into_iter()
+        .filter(|branch| regenerate_set.contains(&branch.branch))
+        .collect::<Vec<_>>();
     let mirror_root = mirror_root.to_owned();
     spawn_blocking(move || create_release_files(&mirror_root, &config, &branches, 10)).await??;
 
