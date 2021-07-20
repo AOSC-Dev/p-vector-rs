@@ -1,5 +1,6 @@
 use anyhow::Result;
 use sqlx::{Executor, PgPool};
+use log::info;
 
 const PV_QA_SQL_SCRIPT: &str = include_str!("../sql/pkgissues.sql");
 
@@ -25,8 +26,17 @@ pub async fn connect_database(connspec: &str) -> Result<PgPool> {
 }
 
 /// Run QA analysis
-pub async fn run_analysis(pool: &PgPool) -> Result<()> {
+pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
     let mut tx = pool.acquire().await?;
+    let stmt = format!(
+        "SELECT max(atime) + INTERVAL '{} hours' >= now() AS refresh FROM pv_package_issues",
+        delay
+    );
+    let refresh: Option<bool> = sqlx::query_scalar(&stmt).fetch_one(&mut tx).await?;
+    if refresh.unwrap_or(false) {
+        info!("Analysis skipped.");
+        return Ok(());
+    }
     // unprepared transaction is used since this is a SQL script file
     tx.execute(PV_QA_SQL_SCRIPT).await?;
 

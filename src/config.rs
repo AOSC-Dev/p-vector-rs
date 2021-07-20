@@ -13,6 +13,7 @@ pub struct GeneralConfig {
     pub label: String,
     pub codename: String,
     certificate: Option<String>,
+    pub qa_interval: usize,
 }
 
 #[derive(Deserialize, Clone)]
@@ -31,7 +32,6 @@ pub struct Config {
 
 #[derive(Clone)]
 pub struct ReleaseConfig {
-    // TODO: add cert info
     pub origin: String,
     pub label: String,
     pub codename: String,
@@ -57,7 +57,7 @@ pub fn convert_branch_description_config(config: &Config) -> ReleaseConfig {
 
 pub fn lint_config(config: &Config) {
     if config.config.discover && !config.branch.is_empty() {
-        warn!("Specifying any branch when auto-discover is enabled does not make sense.");
+        warn!("Specifying any branch when auto-discover is enabled will only get their descriptions read.");
     }
 }
 

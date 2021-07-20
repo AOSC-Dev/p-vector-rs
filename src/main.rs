@@ -73,7 +73,9 @@ async fn main() -> Result<()> {
         cli::PVectorCommand::Scan(_) => scan_action(config, &pool).await?,
         cli::PVectorCommand::Release(_) => release_action(&config, &pool).await?,
         cli::PVectorCommand::Sync(_) => sync::sync_db_updates(&pool).await?,
-        cli::PVectorCommand::Analyze(_) => analysis_action(&pool).await?,
+        cli::PVectorCommand::Analyze(_) => {
+            analysis_action(&pool, config.config.qa_interval).await?
+        }
         cli::PVectorCommand::Reset(_) => todo!(),
         cli::PVectorCommand::GC(_) => gc_action(&config, &pool).await?,
         cli::PVectorCommand::Full(_) => full_action(config, &pool).await?,
@@ -85,7 +87,10 @@ async fn main() -> Result<()> {
 async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     scan_action(config.clone(), pool).await?;
     let stage1_results = tokio::join!(sync::sync_db_updates(pool), gc_action(&config, pool));
-    let stage2_results = tokio::join!(analysis_action(pool), release_action(&config, pool));
+    let stage2_results = tokio::join!(
+        analysis_action(pool, config.config.qa_interval),
+        release_action(&config, pool)
+    );
     log_error!(stage1_results.0, "synchronizing database");
     log_error!(stage1_results.1, "garbage collecting");
     log_error!(stage2_results.0, "analyzing issues");
@@ -94,9 +99,9 @@ async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     Ok(())
 }
 
-async fn analysis_action(pool: &PgPool) -> Result<()> {
+async fn analysis_action(pool: &PgPool, delay: usize) -> Result<()> {
     info!("Running analysis ...");
-    db::run_analysis(pool).await?;
+    db::run_analysis(pool, delay).await?;
     info!("Analysis completed.");
 
     Ok(())
