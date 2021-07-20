@@ -1,9 +1,9 @@
 -- Tables
 CREATE TABLE IF NOT EXISTS pv_repos (
     name TEXT PRIMARY KEY, -- key: bsp-sunxi-armel/testing
-    -- realname TEXT NOT NULL,     -- group key: amd64, bsp-sunxi-armel
+    realname TEXT NOT NULL,     -- group key: amd64, bsp-sunxi-armel
     path TEXT NOT NULL,         -- testing/main
-    -- testing INTEGER NOT NULL,   -- 0, 1, 2
+    testing INTEGER NOT NULL,   -- 0, 1, 2
     branch TEXT NOT NULL,       -- stable, testing, explosive
     component TEXT NOT NULL,    -- main, bsp-sunxi, opt-avx2
     architecture TEXT NOT NULL,  -- amd64, all
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS pv_package_files (
     path TEXT,
     name TEXT,
     size BIGINT,
-    ftype SMALLINT,
+    ftype TEXT,
     perm INTEGER,
     uid BIGINT,
     gid BIGINT,

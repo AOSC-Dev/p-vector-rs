@@ -162,7 +162,7 @@ SELECT f.package, f.version, f.repo, 321::int errno, 0::smallint "level",
     'uname', f.uname, 'gname', f.gname, 'ftype', f.ftype) detail
 FROM pv_package_files f
 INNER JOIN tv_packages_new USING (package, version, repo)
-WHERE package!='aosc-aaa' AND ftype='reg' AND (path='usr/local' OR
+WHERE package!='aosc-aaa' AND ftype=0 AND (path='usr/local' OR
   path !~ '^(bin|boot|etc|lib|opt|run|sbin|srv|usr|var)/?.*')
 UNION ALL ----- 322 -----
 SELECT f.package, f.version, f.repo, 322::int errno,
@@ -172,13 +172,13 @@ SELECT f.package, f.version, f.repo, 322::int errno,
     'uname', f.uname, 'gname', f.gname, 'ftype', f.ftype) detail
 FROM pv_package_files f
 INNER JOIN tv_packages_new USING (package, version, repo)
-WHERE f.size=0 AND ftype='reg' AND perm & 1=1
+WHERE f.size=0 AND ftype=0 AND perm & 1=1
 AND name NOT IN ('NEWS', 'ChangeLog', 'INSTALL', 'TODO', 'COPYING', 'AUTHORS',
   'README', 'README.md', 'README.txt', 'empty', 'placeholder', 'placeholder.txt')
 AND name NOT LIKE '.%' AND name NOT LIKE '__init__.p%'
 UNION ALL ----- 323 -----
 SELECT f.package, f.version, f.repo, 323::int errno,
-  CASE WHEN f.ftype='reg' THEN -(perm&1)::smallint
+  CASE WHEN f.ftype=0 THEN -(perm&1)::smallint
   ELSE -(perm&2)::smallint END "level",
   (CASE WHEN path='' THEN '' ELSE '/' || path END) || '/' || name filename,
   jsonb_build_object('size', f.size, 'perm', f.perm, 'uid', f.uid, 'gid', f.gid,
@@ -193,8 +193,8 @@ SELECT f.package, f.version, f.repo, 324::int errno, 0::smallint "level",
     'uname', f.uname, 'gname', f.gname, 'ftype', f.ftype) detail
 FROM pv_package_files f
 INNER JOIN tv_packages_new USING (package, version, repo)
-WHERE (path IN ('bin', 'sbin', 'usr/bin') AND perm&1=0 AND ftype='reg')
-OR (ftype='dir' AND perm&64=0)
+WHERE (path IN ('bin', 'sbin', 'usr/bin') AND perm&1=0 AND ftype=0)
+OR (ftype=5 AND perm&64=0)
 UNION ALL ----- 401 -----
 SELECT p.name package, min((CASE WHEN coalesce(v.epoch, '') = '' THEN ''
     ELSE v.epoch || ':' END) || v.version ||
@@ -293,7 +293,7 @@ GROUP BY d.package, d.version, d.repo
 --   AND d2.relationship IN ('Breaks', 'Replaces', 'Conflicts')
 --   AND d2.deppkg=f1.package AND (d2.deparch IS NULL OR d2.deparch=r1.architecture)
 --   AND compare_dpkgrel(v1._vercomp, d2.relop, d2.depvercomp)
---   WHERE f1.ftype='reg' AND d1.package IS NULL AND d2.package IS NULL
+--   WHERE f1.ftype=0 AND d1.package IS NULL AND d2.package IS NULL
 --   AND (v1.mtime >= (SELECT t FROM tv_updated)
 --     OR v2.mtime >= (SELECT t FROM tv_updated))
 --   ORDER BY package, version, repo, filename, r2.testing DESC

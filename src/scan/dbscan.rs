@@ -233,10 +233,9 @@ pub async fn update_changed_repos(pool: &PgPool, packages: &[PackageMeta]) -> Re
     let mut tx = pool.begin().await?;
     for (_, repo) in changed_repos {
         sqlx::query!(
-            "INSERT INTO pv_repos VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+            "INSERT INTO pv_repos VALUES ($1, $2, $3, $4, $5, $6, now())
 ON CONFLICT (name) DO UPDATE SET mtime=now()",
             repo.name,
-            repo.key,
             repo.path,
             if repo.branch == "stable" { 0 } else { 1 },
             repo.branch,
@@ -362,16 +361,9 @@ RETURNING (xmax = 0) AS new"#,
         let filename = f.path.file_name().and_then(|p| p.to_str());
         let uname = f.uname.as_ref().and_then(|p| std::str::from_utf8(&p).ok());
         let gname = f.gname.as_ref().and_then(|p| std::str::from_utf8(&p).ok());
-        // TODO: use numerical values for file type
-        let ftype = match f.type_ {
-            0 => "reg",
-            1 | 2 => "lnk",
-            5 => "dir",
-            _ => "?",
-        };
         sqlx::query!(
             r#"INSERT INTO pv_package_files VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"#,
-            meta.name, meta.version, repo, path, filename, f.size as i64, ftype, f.perms as i32, f.uid as i64, f.gid as i64, uname, gname
+            meta.name, meta.version, repo, path, filename, f.size as i64, f.type_ as i16, f.perms as i32, f.uid as i64, f.gid as i64, uname, gname
         ).execute(&mut *pool).await?;
     }
 
