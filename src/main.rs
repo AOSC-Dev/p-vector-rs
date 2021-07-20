@@ -86,7 +86,7 @@ async fn main() -> Result<()> {
 
 async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     scan_action(config.clone(), pool).await?;
-    let stage1_results = tokio::join!(sync::sync_db_updates(pool), gc_action(&config, pool));
+    let stage1_results = tokio::join!(sync_action(&config, &pool), gc_action(&config, pool));
     let stage2_results = tokio::join!(
         analysis_action(pool, config.config.qa_interval),
         release_action(&config, pool)

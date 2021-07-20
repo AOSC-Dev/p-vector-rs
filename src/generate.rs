@@ -120,15 +120,75 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
     Ok(files)
 }
 
+fn create_release_file(
+    mirror_root: &Path,
+    config: &ReleaseConfig,
+    m: &BranchMeta,
+    ttl: u64,
+    cert: &Option<sequoia_openpgp::Cert>,
+) -> Result<()> {
+    use std::convert::TryInto;
+    use std::fs::File as StdFile;
+
+    info!("Generating InRelease files for {}", m.branch);
+
+    let branch_root = mirror_root.join("dists").join(&m.branch);
+    let release_files = scan_release_files(&branch_root);
+    if let Err(e) = release_files {
+        error!("Error when scanning {}: {}", m.branch, e);
+        return Err(e);
+    }
+    let description = config
+        .descriptions
+        .get(&m.branch)
+        .map_or_else(|| format!("AOSC OS Topic: {}", m.branch), |d| d.to_owned());
+    let system_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let projected_timestamp = system_time + (ttl * 24 * 3600);
+    let system_time = time::OffsetDateTime::from_unix_timestamp(system_time.try_into().unwrap());
+    let projected_timestamp =
+        time::OffsetDateTime::from_unix_timestamp(projected_timestamp.try_into().unwrap());
+
+    let rendered = (InReleaseTemplate {
+        origin: config.origin.clone(),
+        label: config.label.clone(),
+        codename: config.codename.clone(),
+        suite: m.branch.clone(),
+        description,
+        date: system_time.format(DEB822_DATE),
+        valid_until: projected_timestamp.format(DEB822_DATE),
+        architectures: m.arch.as_ref().unwrap().to_vec(),
+        components: m.comp.as_ref().unwrap().to_vec(),
+        files: release_files.unwrap(),
+    })
+    .render_once();
+    if let Err(e) = rendered {
+        error!("Failed to generate release: {:?}", e);
+        return Ok(());
+    }
+    let rendered = rendered.unwrap();
+    if let Some(ref cert) = cert {
+        // TODO: don't fail when signing failed
+        let signed = sign_message(&cert, rendered.as_bytes())?;
+        let mut f = StdFile::create(branch_root.join("InRelease"))?;
+        f.write_all(&signed)?;
+    } else {
+        warn!("Certificate not found or not available. Release file not signed.");
+        let mut f = StdFile::create(branch_root.join("Release"))?;
+        f.write_all(rendered.as_bytes())?;
+    }
+
+    Ok(())
+}
+
 fn create_release_files(
     mirror_root: &Path,
     config: &ReleaseConfig,
     meta: &[BranchMeta],
     ttl: u64,
 ) -> Result<()> {
-    use std::convert::TryInto;
-    use std::fs::File as StdFile;
-
     let cert = if let Some(cert) = &config.cert {
         info!("Signing release files using certificate: {}", cert);
         Some(load_certificate(cert)?)
@@ -136,58 +196,11 @@ fn create_release_files(
         None
     };
 
-    for m in meta {
-        info!("Generating InRelease files for {}", m.branch);
-
-        let branch_root = mirror_root.join("dists").join(&m.branch);
-        let release_files = scan_release_files(&branch_root);
-        if let Err(e) = release_files {
-            error!("Error when scanning {}: {}", m.branch, e);
-            continue;
+    meta.par_iter().for_each_with(cert, |cert, meta| {
+        if let Err(e) = create_release_file(mirror_root, config, meta, ttl, cert) {
+            warn!("Failed to create release file: {}", e);
         }
-        let description = config
-            .descriptions
-            .get(&m.branch)
-            .map_or_else(|| format!("AOSC OS Topic: {}", m.branch), |d| d.to_owned());
-        let system_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        let projected_timestamp = system_time + (ttl * 24 * 3600);
-        let system_time =
-            time::OffsetDateTime::from_unix_timestamp(system_time.try_into().unwrap());
-        let projected_timestamp =
-            time::OffsetDateTime::from_unix_timestamp(projected_timestamp.try_into().unwrap());
-
-        let rendered = (InReleaseTemplate {
-            origin: config.origin.clone(),
-            label: config.label.clone(),
-            codename: config.codename.clone(),
-            suite: m.branch.clone(),
-            description,
-            date: system_time.format(DEB822_DATE),
-            valid_until: projected_timestamp.format(DEB822_DATE),
-            architectures: m.arch.as_ref().unwrap().to_vec(),
-            components: m.comp.as_ref().unwrap().to_vec(),
-            files: release_files.unwrap(),
-        })
-        .render_once();
-        if let Err(e) = rendered {
-            error!("Failed to generate release: {:?}", e);
-            continue;
-        }
-        let rendered = rendered.unwrap();
-        if let Some(ref cert) = cert {
-            // TODO: don't fail when signing failed
-            let signed = sign_message(&cert, rendered.as_bytes())?;
-            let mut f = StdFile::create(branch_root.join("InRelease"))?;
-            f.write_all(&signed)?;
-        } else {
-            warn!("Certificate not found or not available. Release file not signed.");
-            let mut f = StdFile::create(branch_root.join("Release"))?;
-            f.write_all(rendered.as_bytes())?;
-        }
-    }
+    });
 
     Ok(())
 }
