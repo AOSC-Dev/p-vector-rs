@@ -1,7 +1,8 @@
 -- Revert changes
 BEGIN;
-ALTER TABLE pv_repos ADD COLUMN IF NOT EXISTS realname TEXT NOT NULL;
+ALTER TABLE pv_repos ADD COLUMN IF NOT EXISTS realname TEXT;
 UPDATE pv_repos SET realname = split_part(name, '/', 1);
+ALTER TABLE pv_repos ALTER COLUMN realname SET NOT NULL;
 ALTER TABLE pv_package_files ALTER COLUMN ftype
 SET DATA TYPE TEXT USING
 CASE ftype 
