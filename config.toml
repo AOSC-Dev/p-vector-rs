@@ -17,6 +17,8 @@ codename = "Hotfix"
 certificate = "/etc/p-vector/sign.key"
 # Delay between each QA (analyze) run (in hours)
 qa_interval = 4
+# Enable abbs data sync (AOSC-specific, if you are running a private repository, you can disable this)
+abbs_sync = true
 
 [[branch]]
 # Branch name

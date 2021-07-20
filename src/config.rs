@@ -14,6 +14,7 @@ pub struct GeneralConfig {
     pub codename: String,
     certificate: Option<String>,
     pub qa_interval: usize,
+    pub abbs_sync: bool,
 }
 
 #[derive(Deserialize, Clone)]

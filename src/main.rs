@@ -72,7 +72,7 @@ async fn main() -> Result<()> {
     match args.command {
         cli::PVectorCommand::Scan(_) => scan_action(config, &pool).await?,
         cli::PVectorCommand::Release(_) => release_action(&config, &pool).await?,
-        cli::PVectorCommand::Sync(_) => sync::sync_db_updates(&pool).await?,
+        cli::PVectorCommand::Sync(_) => sync_action(&config, &pool).await?,
         cli::PVectorCommand::Analyze(_) => {
             analysis_action(&pool, config.config.qa_interval).await?
         }
@@ -97,6 +97,15 @@ async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     log_error!(stage2_results.1, "generating release files");
 
     Ok(())
+}
+
+async fn sync_action(config: &config::Config, pool: &PgPool) -> Result<()> {
+    if config.config.abbs_sync {
+        sync::sync_db_updates(pool).await
+    } else {
+        info!("ABBS data sync is disabled.");
+        Ok(())
+    }
 }
 
 async fn analysis_action(pool: &PgPool, delay: usize) -> Result<()> {
