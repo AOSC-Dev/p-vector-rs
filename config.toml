@@ -16,6 +16,7 @@ codename = "Hotfix"
 # Signing private key file (the certificate must include a signing (sub-)key)
 certificate = "/etc/p-vector/sign.key"
 # Delay between each QA (analyze) run (in hours)
+# set this value to 0 to run QA each time; set to -1 to disable QA function altogether
 qa_interval = 4
 # Enable abbs data sync (AOSC-specific, if you are running a private repository, you can disable this)
 abbs_sync = true

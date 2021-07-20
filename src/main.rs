@@ -108,9 +108,14 @@ async fn sync_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     }
 }
 
-async fn analysis_action(pool: &PgPool, delay: usize) -> Result<()> {
+async fn analysis_action(pool: &PgPool, delay: isize) -> Result<()> {
+    use std::convert::TryInto;
+    if delay < 0 {
+        info!("Analysis disabled.");
+        return Ok(());
+    }
     info!("Running analysis ...");
-    db::run_analysis(pool, delay).await?;
+    db::run_analysis(pool, delay.try_into().unwrap()).await?;
     info!("Analysis completed.");
 
     Ok(())

@@ -13,7 +13,7 @@ pub struct GeneralConfig {
     pub label: String,
     pub codename: String,
     certificate: Option<String>,
-    pub qa_interval: usize,
+    pub qa_interval: isize,
     pub abbs_sync: bool,
 }
 
