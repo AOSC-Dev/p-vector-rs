@@ -76,7 +76,7 @@ async fn main() -> Result<()> {
         cli::PVectorCommand::Analyze(_) => {
             analysis_action(&pool, config.config.qa_interval).await?
         }
-        cli::PVectorCommand::Reset(_) => todo!(),
+        cli::PVectorCommand::Reset(_) => reset_action(&pool).await?,
         cli::PVectorCommand::GC(_) => gc_action(&config, &pool).await?,
         cli::PVectorCommand::Full(_) => full_action(config, &pool).await?,
     }
@@ -165,6 +165,10 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     info!("Generation finished.");
 
     Ok(())
+}
+
+async fn reset_action(pool: &PgPool) -> Result<()> {
+    db::reset_database(pool).await
 }
 
 async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {

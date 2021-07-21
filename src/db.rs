@@ -3,6 +3,8 @@ use log::info;
 use sqlx::{Executor, PgPool};
 
 const PV_QA_SQL_SCRIPT: &str = include_str!("../sql/pkgissues.sql");
+const PV_RS_SQL_SCRIPT_PV: &str = include_str!("../migrations/20210621205620_pv-base.down.sql");
+const PV_RS_SQL_SCRIPT_AB: &str = include_str!("../migrations/20210621205247_abbsdb-base.down.sql");
 
 pub struct PVPackage {
     pub package: Option<String>,
@@ -39,6 +41,22 @@ pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
     }
     // unprepared transaction is used since this is a SQL script file
     tx.execute(PV_QA_SQL_SCRIPT).await?;
+
+    Ok(())
+}
+
+/// Erase everything
+pub async fn reset_database(pool: &PgPool) -> Result<()> {
+    let mut tx = pool.begin().await?;
+    sqlx::query!("TRUNCATE TABLE _sqlx_migrations").execute(&mut tx).await?;
+    info!("Resetting p-vector tables ...");
+    tx.execute(PV_RS_SQL_SCRIPT_PV).await?;
+    info!("Resetting abbs sync tables ...");
+    tx.execute(PV_RS_SQL_SCRIPT_AB).await?;
+    info!("Running database garbage collection ...");
+    sqlx::query!("VACUUM").execute(&mut tx).await?;
+    tx.commit().await?;
+    info!("Reset done.");
 
     Ok(())
 }
