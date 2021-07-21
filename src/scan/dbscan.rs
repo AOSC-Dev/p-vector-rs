@@ -282,10 +282,10 @@ RETURNING (xmax = 0) AS new"#,
         warn!("{} is a duplicate!", package.filename);
         // remove duplicated data and append this package to duplicate list
         sqlx::query!(
-            r#"with d1 as (DELETE FROM pv_package_sodep WHERE package=$1 AND version=$2 AND repo=$3 returning package)
-, d2 as (DELETE FROM pv_package_files WHERE package=$1 AND version=$2 AND repo=$3 returning package)
-, d3 as (DELETE FROM pv_package_dependencies WHERE package=$1 AND version=$2 AND repo=$3 returning package)
-, d4 as (DELETE FROM pv_package_duplicate where package=$1 AND version=$2 AND repo=$3 returning package)
+            r#"WITH d1 AS (DELETE FROM pv_package_sodep WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
+, d2 AS (DELETE FROM pv_package_files WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
+, d3 AS (DELETE FROM pv_package_dependencies WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
+, d4 AS (DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
 INSERT INTO pv_package_duplicate SELECT * FROM pv_packages WHERE filename=$4"#,
             meta.name,
             meta.version,
