@@ -37,7 +37,7 @@ pub(crate) struct PVectorGC {}
 pub(crate) struct PVectorFullCycle {}
 
 #[derive(FromArgs, PartialEq, Debug)]
-/// run a full cycle: equals to running scan, release, sync, analyze and gc
+/// generate a new certificate used for signing
 #[argh(subcommand, name = "gen-key")]
 pub(crate) struct PVectorGenKey {}
 
