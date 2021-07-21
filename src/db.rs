@@ -53,9 +53,9 @@ pub async fn reset_database(pool: &PgPool) -> Result<()> {
     tx.execute(PV_RS_SQL_SCRIPT_PV).await?;
     info!("Resetting abbs sync tables ...");
     tx.execute(PV_RS_SQL_SCRIPT_AB).await?;
-    info!("Running database garbage collection ...");
-    sqlx::query!("VACUUM").execute(&mut tx).await?;
     tx.commit().await?;
+    info!("Running database garbage collection ...");
+    sqlx::query!("VACUUM").execute(pool).await?;
     info!("Reset done.");
 
     Ok(())
