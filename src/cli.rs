@@ -37,6 +37,11 @@ pub(crate) struct PVectorGC {}
 pub(crate) struct PVectorFullCycle {}
 
 #[derive(FromArgs, PartialEq, Debug)]
+/// run a full cycle: equals to running scan, release, sync, analyze and gc
+#[argh(subcommand, name = "gen-key")]
+pub(crate) struct PVectorGenKey {}
+
+#[derive(FromArgs, PartialEq, Debug)]
 #[argh(subcommand)]
 pub(crate) enum PVectorCommand {
     Scan(PVectorScan),
@@ -46,6 +51,7 @@ pub(crate) enum PVectorCommand {
     Reset(PVectorReset),
     GC(PVectorGC),
     Full(PVectorFullCycle),
+    GenKey(PVectorGenKey),
 }
 
 #[derive(FromArgs, PartialEq, Debug)]

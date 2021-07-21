@@ -1,0 +1,14 @@
+Certificate generation made the following files:
+Public key:  <%- pubkey %>
+Private key: <%- privkey %>
+Expiry Date: <%- expdate %>
+
+Instructions:
+1. Move <%- privkey %> to a safe location.
+2. Edit <%- config_file %> and set "certificate" to the location you moved the file to in step 1.
+3. Move <%- pubkey %> to a public location so that the user of your repository can download it.
+4. You and your users need to add the public key to APT keyring like this: `apt-key add '<%- pubkey %>'`.
+
+Notes:
+1. If your private key expires, you just have to generate a new certificate like before.
+2. If your private key is compromised, you need to revoke the certificate and re-generate a new certificate.

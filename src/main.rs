@@ -79,6 +79,7 @@ async fn main() -> Result<()> {
         cli::PVectorCommand::Reset(_) => reset_action(&pool).await?,
         cli::PVectorCommand::GC(_) => gc_action(&config, &pool).await?,
         cli::PVectorCommand::Full(_) => full_action(config, &pool).await?,
+        cli::PVectorCommand::GenKey(_) => generate_key(args.config.as_str()).await?,
     }
 
     Ok(())
@@ -169,6 +170,50 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
 
 async fn reset_action(pool: &PgPool) -> Result<()> {
     db::reset_database(pool).await
+}
+
+fn ask_for_key_info() -> Result<String> {
+    use dialoguer::theme::ColorfulTheme;
+    use dialoguer::Input;
+
+    let name: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Your name")
+        .interact_text()?;
+    let email: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Your e-mail address")
+        .interact_text()?;
+
+    Ok(format!("{} <{}>", name, email))
+}
+
+async fn generate_key(config: &str) -> Result<()> {
+    use std::convert::TryInto;
+    use time::OffsetDateTime;
+    use tokio::fs::{create_dir_all, File};
+    use tokio::io::AsyncWriteExt;
+
+    let userid = spawn_blocking(|| ask_for_key_info()).await??;
+    let path =
+        Path::new(&std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join("pv-keys");
+    create_dir_all(&path).await?;
+    let cert = spawn_blocking(move || sign::generate_certificate(&userid)).await??;
+    let priv_path = path.join(format!("{}.key", cert.id));
+    let pub_path = path.join(format!("{}.pub", cert.id));
+    let mut p_file = File::create(&priv_path).await?;
+    let mut c_file = File::create(&pub_path).await?;
+    p_file.write_all(&cert.privkey).await?;
+    c_file.write_all(&cert.pubkey).await?;
+    let expiry = OffsetDateTime::from_unix_timestamp(cert.expiry.try_into().unwrap());
+    let expiry_format = expiry.format("%F %R %z");
+    let inst = sign::generate_instructions(
+        pub_path.display().to_string(),
+        priv_path.display().to_string(),
+        expiry_format,
+        config,
+    )?;
+    println!("\n{}", inst);
+
+    Ok(())
 }
 
 async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {

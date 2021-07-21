@@ -1,11 +1,76 @@
 use anyhow::{anyhow, Result};
-use openpgp::cert::Cert;
+use openpgp::cert::{Cert, CertBuilder};
 use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{Message, Signer};
+use openpgp::serialize::SerializeInto;
+use openpgp::types::KeyFlags;
+use sailfish::TemplateOnce;
 use sequoia_openpgp as openpgp;
 use std::io::Write;
 use std::path::Path;
+use std::time::{Duration, UNIX_EPOCH};
+
+const CERT_LIFETIME: u64 = 2 * 31_556_952; // ~2 years
+
+#[derive(Debug)]
+pub struct GeneratedCert {
+    pub id: String,
+    pub pubkey: Vec<u8>,
+    pub privkey: Vec<u8>,
+    pub expiry: u64,
+}
+
+#[derive(TemplateOnce)]
+#[template(path = "gen-key-instructions.stpl")]
+struct InstructionsTemplate {
+    pubkey: String,
+    privkey: String,
+    expdate: String,
+    config_file: String,
+}
+
+pub fn generate_instructions(
+    pubkey: String,
+    privkey: String,
+    expdate: String,
+    config_file: &str,
+) -> Result<String> {
+    Ok(InstructionsTemplate {
+        pubkey,
+        privkey,
+        expdate,
+        config_file: config_file.to_string(),
+    }
+    .render_once()?)
+}
+
+pub fn generate_certificate(userid: &str) -> Result<GeneratedCert> {
+    let now = std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)?
+        .as_secs();
+    let (cert, _) = CertBuilder::new()
+        .add_userid(userid)
+        .set_validity_period(Duration::from_secs(CERT_LIFETIME))
+        .add_subkey(
+            KeyFlags::empty().set_signing().set_authentication(),
+            None,
+            None,
+        )
+        .generate()?;
+    let pubkey = cert.armored().to_vec()?;
+    let privkey = cert.as_tsk().armored().to_vec()?;
+    let id = cert.fingerprint().to_string();
+    // -60 because sequoia backdates the timestamp by 60 seconds to make signatures immediately binding
+    let expiry = now + CERT_LIFETIME - 60;
+
+    Ok(GeneratedCert {
+        id,
+        pubkey,
+        privkey,
+        expiry,
+    })
+}
 
 pub fn load_certificate<P: AsRef<Path>>(cert_path: P) -> Result<Cert> {
     Ok(Cert::from_file(cert_path.as_ref())?)
