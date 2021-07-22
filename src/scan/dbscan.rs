@@ -356,7 +356,7 @@ INSERT INTO pv_package_duplicate SELECT * FROM pv_packages WHERE filename=$4"#,
 }
 
 fn get_branch_name<P: AsRef<Path>>(rel_path: P) -> Result<(String, String)> {
-    let mut comp = rel_path.as_ref().components();
+    let mut comp = rel_path.as_ref().strip_prefix("pool")?.components();
     let mut branch = None;
     for _ in 0..=1 {
         let cur = match comp.next() {
@@ -575,18 +575,17 @@ fn open_deb_advanced<'a, R: Read + 'a>(
 pub(crate) fn scan_single_deb_advanced<P: AsRef<Path>>(path: P, root: P) -> Result<PackageMeta> {
     let stat = path.as_ref().metadata()?;
     let mut f = File::open(path.as_ref())?;
-    let filename = path.as_ref().to_string_lossy();
     let sha256 = sha256sum(&f)?;
     f.seek(SeekFrom::Start(0))?;
-    let rel_filename = path.as_ref().strip_prefix(root.as_ref().join("pool"))?;
+    let rel_filename = path.as_ref().strip_prefix(root.as_ref())?;
     let component = get_branch_name(rel_filename)?;
 
-    open_deb_advanced(f, stat, sha256, &filename, component)
+    open_deb_advanced(f, stat, sha256, &rel_filename.to_string_lossy(), component)
 }
 
 #[test]
 fn test_deb_adv() {
     let content =
-        scan_single_deb_advanced("./tests/fixtures/a2jmidid_9-0_amd64.deb", "./").unwrap();
+        scan_single_deb_advanced("./tests/pool/tests/fixtures/a2jmidid_9-0_amd64.deb", "./tests").unwrap();
     println!("{:?}", content);
 }
