@@ -237,6 +237,10 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
         delete.len(),
         changed.len()
     );
+    if delete.is_empty() && changed.is_empty() {
+        info!("Nothing to scan.");
+        return Ok(());
+    }
     info!("Starting scanner ...");
     let mirror_root = mirror_root_clone.clone();
     let packages =
