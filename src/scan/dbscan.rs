@@ -572,10 +572,7 @@ fn open_deb_advanced<'a, R: Read + 'a>(
 }
 
 /// Advanced version of scanning deb packages. With bells and whistles.
-pub(crate) fn scan_single_deb_advanced<'a, P: AsRef<Path>>(
-    path: P,
-    root: P,
-) -> Result<PackageMeta> {
+pub(crate) fn scan_single_deb_advanced<P: AsRef<Path>>(path: P, root: P) -> Result<PackageMeta> {
     let stat = path.as_ref().metadata()?;
     let mut f = File::open(path.as_ref())?;
     let filename = path.as_ref().to_string_lossy();

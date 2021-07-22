@@ -192,7 +192,7 @@ async fn generate_key(config: &str) -> Result<()> {
     use tokio::fs::{create_dir_all, File};
     use tokio::io::AsyncWriteExt;
 
-    let userid = spawn_blocking(|| ask_for_key_info()).await??;
+    let userid = spawn_blocking(ask_for_key_info).await??;
     let path =
         Path::new(&std::env::var("HOME").unwrap_or_else(|_| ".".to_string())).join("pv-keys");
     create_dir_all(&path).await?;

@@ -73,7 +73,7 @@ pub fn generate_certificate(userid: &str) -> Result<GeneratedCert> {
 }
 
 pub fn load_certificate<P: AsRef<Path>>(cert_path: P) -> Result<Cert> {
-    Ok(Cert::from_file(cert_path.as_ref())?)
+    Cert::from_file(cert_path.as_ref())
 }
 
 pub fn sign_message(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
@@ -86,7 +86,7 @@ pub fn sign_message(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
         .alive()
         .revoked(false)
         .for_signing()
-        .nth(0);
+        .next();
     if keypair.is_none() {
         return Err(anyhow!("No usable signing key found in your certificate."));
     }

@@ -22,10 +22,7 @@ async fn download_db(file: &mut File, component: &str, etag: &str) -> Result<Vec
     let mut resp = client.get(url).header("If-None-Match", etag).send().await?;
     resp.error_for_status_ref()?;
     let new_etag = resp.headers().get("ETag");
-    let new_etag = new_etag
-        .and_then(|x| Some(x.as_bytes()))
-        .unwrap_or_default()
-        .to_vec();
+    let new_etag = new_etag.map(|x| x.as_bytes()).unwrap_or_default().to_vec();
     if resp.status() == reqwest::StatusCode::NOT_MODIFIED {
         return Ok(new_etag);
     }
@@ -91,7 +88,7 @@ pub async fn sync_db_updates(pool: &PgPool) -> Result<()> {
         let mut temp_file = File::create(&temp_path).await?;
         let new_etag = download_db(&mut temp_file, &format!("{}.gz", db), &etag).await?;
         let new_etag = std::str::from_utf8(&new_etag)?;
-        if new_etag == &etag {
+        if new_etag == etag {
             info!("{} update to date.", db);
             continue;
         }

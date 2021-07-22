@@ -48,7 +48,9 @@ pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
 /// Erase everything
 pub async fn reset_database(pool: &PgPool) -> Result<()> {
     let mut tx = pool.begin().await?;
-    sqlx::query!("TRUNCATE TABLE _sqlx_migrations").execute(&mut tx).await?;
+    sqlx::query!("TRUNCATE TABLE _sqlx_migrations")
+        .execute(&mut tx)
+        .await?;
     info!("Resetting p-vector tables ...");
     tx.execute(PV_RS_SQL_SCRIPT_PV).await?;
     info!("Resetting abbs sync tables ...");

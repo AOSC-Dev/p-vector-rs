@@ -101,7 +101,7 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
     let mut files_to_scan = Vec::new();
     for entry in walk {
         let entry = entry?;
-        if entry.file_type().is_dir() || entry.file_name().to_string_lossy().starts_with(".") {
+        if entry.file_type().is_dir() || entry.file_name().to_string_lossy().starts_with('.') {
             continue;
         }
         files_to_scan.push(entry.path().to_owned());
@@ -383,7 +383,7 @@ async fn need_refresh(inrel_path: &Path) -> Result<bool> {
         time::parse(captured_str, DEB822_DATE).map_err(|e| anyhow!(e))?;
     let parsed_timestamp = parsed.to_offset(offset!(+0)).unix_timestamp();
     let system_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-    let projected_timestamp = system_time + (1 * 24 * 3600);
+    let projected_timestamp = system_time + (24 * 3600);
 
     Ok(projected_timestamp >= parsed_timestamp as u64)
 }

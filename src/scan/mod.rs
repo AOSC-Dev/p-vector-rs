@@ -153,7 +153,7 @@ pub fn scan_packages_advanced(entries: &[&Path], root: &Path) -> Vec<PackageMeta
         .par_iter()
         .filter_map(|entry| {
             info!("Scanning {} ...", entry.display());
-            match scan_single_deb_advanced(entry, &root.as_ref()) {
+            match scan_single_deb_advanced(entry, &root) {
                 Ok(meta) => Some(meta),
                 Err(err) => {
                     error!("{}: {:?}", entry.display(), err);
