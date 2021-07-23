@@ -31,6 +31,17 @@ async fn clean_dist_files(to_remove: &[&String], mirror_root: &Path) {
     futures::future::join_all(tasks).await;
 }
 
+async fn refresh_views(pool: &PgPool) -> Result<()> {
+    tokio::try_join!(
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_packages_new").execute(pool),
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_dpkg_dependencies").execute(pool),
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_so_breaks").execute(pool),
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_so_breaks_dep").execute(pool),
+    )?;
+
+    Ok(())
+}
+
 /// Execute garbage collection
 pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()> {
     let known_branches = list_existing_branches(pool).await?;
@@ -58,7 +69,13 @@ pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()>
             .execute(pool)
             .await?;
     }
-    clean_dist_files(&to_remove, mirror_root.as_ref()).await;
+    let result = tokio::join!(
+        clean_dist_files(&to_remove, mirror_root.as_ref()),
+        refresh_views(&pool)
+    );
+    if let Err(e) = result.1 {
+        error!("Error refreshing views: {}", e);
+    }
 
     Ok(())
 }
