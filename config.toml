@@ -1,6 +1,8 @@
 [config]
 # PostgreSQL connection string
 db_pgconn = "postgresql://localhost/packages"
+# Use for package change notifier, set to null to disable it
+change_notifier = "/tmp/p-vector-changes"
 # Path to repository
 path = "/mirror/debs"
 # Auto-discover function

@@ -15,6 +15,7 @@ use std::{
 use std::{fs::Metadata, io::Seek, path::Component};
 use xz2::read::XzDecoder;
 
+use crate::ipc::PVMessage;
 use crate::scan::{determine_format, open_compressed_control, ArArchive, TarArchive};
 use crate::{db, read_compressed};
 
@@ -136,7 +137,7 @@ fn sha256sum_validate<P: AsRef<Path>>(file: P, expected: &str) -> Result<bool> {
     Ok(hash == expected)
 }
 
-pub fn collect_removed_packages(removed: SegQueue<PathBuf>, mirror_root: &Path) -> Vec<String> {
+pub fn collect_removed_packages(removed: SegQueue<PathBuf>, mirror_root: &Path) -> Vec<PathBuf> {
     let mut removed_packages = Vec::new();
     removed_packages.reserve(removed.len());
     while let Some(package) = removed.pop() {
@@ -144,8 +145,7 @@ pub fn collect_removed_packages(removed: SegQueue<PathBuf>, mirror_root: &Path) 
             package
                 .strip_prefix(mirror_root)
                 .unwrap()
-                .to_string_lossy()
-                .to_string(),
+                .to_path_buf()
         );
     }
 
@@ -226,6 +226,57 @@ fn collect_changed_repos(packages: &[PackageMeta]) -> HashMap<String, Repository
     }
 
     repos
+}
+
+/// Get what and how packages changed (needs to be run before `save_packages_to_db`)
+pub async fn what_changed(pool: &PgPool, packages: &[PackageMeta]) -> Result<Vec<PVMessage>> {
+    let mut messages = Vec::new();
+    messages.reserve(packages.len());
+    for p in packages {
+        let key = get_repo_key_name(&p.repo, &p.deb.arch);
+        let repo = format!("{}/{}", key, p.repo.0);
+        let record = sqlx::query!(
+            r#"SELECT comparable_dpkgver($1) > _vercomp AS newer, version, filename FROM pv_packages 
+WHERE package=$2 AND repo=$3 AND _vercomp=
+(SELECT max("_vercomp") FROM pv_packages WHERE package=$2 AND repo=$3 GROUP BY package)"#,
+            p.deb.version,
+            p.deb.name,
+            repo
+        )
+        .fetch_optional(pool)
+        .await?;
+        // not found: new package
+        if record.is_none() {
+            messages.push(PVMessage::new(
+                format!("{}-{}", p.repo.0, p.repo.1),
+                p.deb.name.clone(),
+                p.deb.arch.clone(),
+                b'+',
+                None,
+                Some(p.deb.version.clone()),
+            ));
+            continue;
+        }
+        let record = record.unwrap();
+        let method = if record.newer.unwrap_or(false) {
+            b'^'
+        } else if p.filename != record.filename {
+            b'*'
+        } else {
+            // not a new package, version is not newer: older package
+            continue
+        };
+        messages.push(PVMessage::new(
+            format!("{}-{}", p.repo.0, p.repo.1),
+            p.deb.name.clone(),
+            p.deb.arch.clone(),
+            method,
+            Some(record.version),
+            Some(p.deb.version.clone()),
+        ));
+    }
+
+    Ok(messages)
 }
 
 pub async fn update_changed_repos(pool: &PgPool, packages: &[PackageMeta]) -> Result<()> {
@@ -585,7 +636,10 @@ pub(crate) fn scan_single_deb_advanced<P: AsRef<Path>>(path: P, root: P) -> Resu
 
 #[test]
 fn test_deb_adv() {
-    let content =
-        scan_single_deb_advanced("./tests/pool/tests/fixtures/a2jmidid_9-0_amd64.deb", "./tests").unwrap();
+    let content = scan_single_deb_advanced(
+        "./tests/pool/tests/fixtures/a2jmidid_9-0_amd64.deb",
+        "./tests",
+    )
+    .unwrap();
     println!("{:?}", content);
 }

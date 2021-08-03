@@ -6,6 +6,7 @@ use std::{collections::HashMap, fs::File, io::Read, path::Path};
 #[derive(Deserialize, Clone)]
 pub struct GeneralConfig {
     pub db_pgconn: String,
+    pub change_notifier: Option<String>,
     pub path: String,
     pub discover: bool,
     pub origin: String,

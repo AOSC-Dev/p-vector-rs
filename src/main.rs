@@ -17,6 +17,7 @@ mod config;
 mod db;
 mod gc;
 mod generate;
+mod ipc;
 mod parser;
 mod scan;
 mod sign;
@@ -216,13 +217,27 @@ async fn generate_key(config: &str) -> Result<()> {
     Ok(())
 }
 
+async fn collect_package_changes(
+    pool: &PgPool,
+    packages: &[scan::PackageMeta],
+    removed: &[PathBuf],
+) -> Result<(Vec<ipc::PVMessage>, Vec<ipc::PVMessage>)> {
+    let result = tokio::try_join!(
+        scan::what_changed(pool, packages),
+        db::get_removed_packages_message(pool, removed)
+    )?;
+
+    Ok(result)
+}
+
 async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     let pool_path = Path::new(&config.config.path).join("pool");
     let mirror_root = config.config.path.clone();
-    let mirror_root_clone = Path::new(&mirror_root).to_owned();
+    let mirror_root_path = Path::new(&mirror_root).to_owned();
+    let mirror_root_clone = mirror_root.clone();
     let topics = spawn_blocking(move || scan::discover_topics_components(&pool_path)).await??;
     info!("{} topics discovered.", topics.len());
-    let files = spawn_blocking(move || scan::collect_all_packages(&config.config.path)).await??;
+    let files = spawn_blocking(move || scan::collect_all_packages(&mirror_root_clone)).await??;
     info!("{} deb files discovered.", files.len());
     info!("Collecting packages information from database ...");
     let db_packages = list_all_packages(&pool, &topics).await?;
@@ -242,11 +257,20 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
         return Ok(());
     }
     info!("Starting scanner ...");
-    let mirror_root = mirror_root_clone.clone();
+    let mirror_root = mirror_root_path.clone();
     let packages =
-        block_in_place(move || scan::scan_packages_advanced(&changed, &mirror_root_clone));
+        block_in_place(move || scan::scan_packages_advanced(&changed, &mirror_root_path));
     info!("Scan finished.");
     let deleted = collect_removed_packages(delete, &mirror_root);
+    // IPC operations
+    // TODO: Move these to somewhere else maybe?
+    if let Some(ref ipc_address) = config.config.change_notifier {
+        info!("Collecting changed packages ...");
+        let (changed, removed) = collect_package_changes(pool, &packages, &deleted).await?;
+        info!("Publishing changes to {}", ipc_address);
+        ipc::publish_pv_messages(&removed, ipc_address).await?;
+        ipc::publish_pv_messages(&changed, ipc_address).await?;
+    }
     info!("Deleting {} packages from database ...", deleted.len());
     db::remove_packages_by_path(pool, &deleted).await?;
     info!("Saving changes to database ...");

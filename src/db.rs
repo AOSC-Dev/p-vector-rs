@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::Result;
 use log::info;
 use sqlx::{Executor, PgPool};
@@ -78,9 +80,37 @@ FROM pv_package_duplicate p INNER JOIN pv_repos r ON p.repo=r.name WHERE r.path=
     Ok(records)
 }
 
-pub async fn remove_packages_by_path<S: AsRef<str>>(pool: &PgPool, path: &[S]) -> Result<()> {
+/// Generate notifying messages for removed packages
+pub async fn get_removed_packages_message<P: AsRef<Path>>(
+    pool: &PgPool,
+    path: &[P],
+) -> Result<Vec<crate::ipc::PVMessage>> {
+    let mut messages = Vec::new();
+    for path in path {
+        let path = path.as_ref().to_string_lossy();
+        let record = sqlx::query!(
+            "SELECT package, version, repo, architecture FROM pv_packages WHERE filename = $1",
+            path.as_ref()
+        )
+        .fetch_one(pool)
+        .await?;
+        messages.push(crate::ipc::PVMessage::new(
+            record.repo,
+            record.package,
+            record.architecture,
+            b'-',
+            Some(record.version),
+            None,
+        ))
+    }
+
+    Ok(messages)
+}
+
+pub async fn remove_packages_by_path<P: AsRef<Path>>(pool: &PgPool, path: &[P]) -> Result<()> {
     let mut tx = pool.begin().await?;
     for path in path {
+        let path = path.as_ref().to_string_lossy();
         sqlx::query!("DELETE FROM pv_packages WHERE filename = $1", path.as_ref())
             .execute(&mut tx)
             .await?;
