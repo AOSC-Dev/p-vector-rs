@@ -2,10 +2,11 @@
 # PostgreSQL connection string
 db_pgconn = "postgresql://localhost/packages"
 # Use for package change notifier, set to null to disable it
-change_notifier = "/tmp/p-vector-changes"
+# If you don't use this feature, disabling it could improve performance
+change_notifier = "ipc:///tmp/p-vector-changes"
 # Path to repository
 path = "/mirror/debs"
-# Auto-discover function
+# Auto-discover branches
 discover = true
 # Brand name
 origin = "AOSC"
@@ -20,7 +21,7 @@ certificate = "/etc/p-vector/sign.key"
 # Delay between each QA (analyze) run (in hours)
 # set this value to 0 to run QA each time; set to -1 to disable QA function altogether
 qa_interval = 4
-# Enable abbs data sync (AOSC-specific, if you are running a private repository, you can disable this)
+# Enable abbs data sync (AOSC-specific, if you are running a private repository, you should disable this)
 abbs_sync = true
 
 [[branch]]

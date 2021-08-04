@@ -267,9 +267,13 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     if let Some(ref ipc_address) = config.config.change_notifier {
         info!("Collecting changed packages ...");
         let (changed, removed) = collect_package_changes(pool, &packages, &deleted).await?;
-        info!("Publishing changes to {}", ipc_address);
-        ipc::publish_pv_messages(&removed, ipc_address).await?;
-        ipc::publish_pv_messages(&changed, ipc_address).await?;
+        info!("Publishing changes to {} ...", ipc_address);
+        if let Err(err) = ipc::publish_pv_messages(&removed, ipc_address).await {
+            error!("Failed to publish removed packages: {}", err);
+        }
+        if let Err(err) = ipc::publish_pv_messages(&changed, ipc_address).await {
+            error!("Failed to publish changed packages: {}", err);
+        }
     }
     info!("Deleting {} packages from database ...", deleted.len());
     db::remove_packages_by_path(pool, &deleted).await?;
