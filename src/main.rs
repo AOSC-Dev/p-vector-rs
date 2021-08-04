@@ -1,13 +1,10 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashSet, path::{Path, PathBuf}, time::Duration};
 
 use anyhow::Result;
 use futures::future::Either;
 use log::{error, info};
 use sqlx::PgPool;
-use tokio::task::{block_in_place, spawn_blocking};
+use tokio::{task::{block_in_place, spawn_blocking}, time::sleep};
 use walkdir::DirEntry;
 
 use crate::scan::collect_removed_packages;
@@ -278,6 +275,8 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
 async fn ipc_publish(config: config::Config, pool: &PgPool, packages: &Vec<scan::PackageMeta>, deleted: &Vec<PathBuf>) -> Result<()> {
     if let Some(ref ipc_address) = config.config.change_notifier {
         let socket = ipc::zmq_bind(ipc_address)?;
+        // sleep 1 second so that the client is ready
+        sleep(Duration::from_secs(1)).await;
         info!("Collecting changed packages ...");
         let (changed, removed) = collect_package_changes(pool, packages, deleted).await?;
         info!("Publishing changes to {} ...", ipc_address);
