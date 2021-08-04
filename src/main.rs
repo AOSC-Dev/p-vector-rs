@@ -264,23 +264,29 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     let deleted = collect_removed_packages(delete, &mirror_root);
     // IPC operations
     // TODO: Move these to somewhere else maybe?
-    if let Some(ref ipc_address) = config.config.change_notifier {
-        info!("Collecting changed packages ...");
-        let (changed, removed) = collect_package_changes(pool, &packages, &deleted).await?;
-        info!("Publishing changes to {} ...", ipc_address);
-        if let Err(err) = ipc::publish_pv_messages(&removed, ipc_address).await {
-            error!("Failed to publish removed packages: {}", err);
-        }
-        if let Err(err) = ipc::publish_pv_messages(&changed, ipc_address).await {
-            error!("Failed to publish changed packages: {}", err);
-        }
-    }
+    ipc_publish(config, pool, &packages, &deleted).await?;
     info!("Deleting {} packages from database ...", deleted.len());
     db::remove_packages_by_path(pool, &deleted).await?;
     info!("Saving changes to database ...");
     scan::update_changed_repos(pool, &packages).await?;
     scan::save_packages_to_db(pool, &packages).await?;
     info!("Saving completed.");
+
+    Ok(())
+}
+
+async fn ipc_publish(config: config::Config, pool: &PgPool, packages: &Vec<scan::PackageMeta>, deleted: &Vec<PathBuf>) -> Result<()> {
+    if let Some(ref ipc_address) = config.config.change_notifier {
+        let socket = ipc::zmq_bind(ipc_address)?;
+        info!("Collecting changed packages ...");
+        let (changed, removed) = collect_package_changes(pool, packages, deleted).await?;
+        info!("Publishing changes to {} ...", ipc_address);
+        spawn_blocking(move || -> Result<()> {
+            ipc::publish_pv_messages(&removed, &socket)?;
+            ipc::publish_pv_messages(&changed, &socket)?;
+            Ok(())
+        }).await??;
+    }
 
     Ok(())
 }

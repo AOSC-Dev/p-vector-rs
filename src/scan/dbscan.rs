@@ -141,12 +141,7 @@ pub fn collect_removed_packages(removed: SegQueue<PathBuf>, mirror_root: &Path) 
     let mut removed_packages = Vec::new();
     removed_packages.reserve(removed.len());
     while let Some(package) = removed.pop() {
-        removed_packages.push(
-            package
-                .strip_prefix(mirror_root)
-                .unwrap()
-                .to_path_buf()
-        );
+        removed_packages.push(package.strip_prefix(mirror_root).unwrap().to_path_buf());
     }
 
     removed_packages
@@ -264,7 +259,7 @@ WHERE package=$2 AND repo=$3 AND _vercomp=
             b'*'
         } else {
             // not a new package, version is not newer: older package
-            continue
+            continue;
         };
         messages.push(PVMessage::new(
             format!("{}-{}", p.repo.0, p.repo.1),

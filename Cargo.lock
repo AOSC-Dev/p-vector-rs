@@ -1475,11 +1475,11 @@ dependencies = [
  "tar",
  "tempfile",
  "time",
- "tmq",
  "tokio",
  "toml 0.5.8",
  "walkdir",
  "xz2",
+ "zmq",
 ]
 
 [[package]]
@@ -2328,19 +2328,6 @@ name = "tinyvec_macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
-
-[[package]]
-name = "tmq"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48fc0820216dbcbc4af5fceb12dc08a99bf93174198afe0bf989d5440a5c6cb8"
-dependencies = [
- "futures",
- "log",
- "thiserror",
- "tokio",
- "zmq",
-]
 
 [[package]]
 name = "tokio"

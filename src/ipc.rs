@@ -1,8 +1,7 @@
-use serde::Serialize;
 use anyhow::Result;
 use bincode::serialize;
-use futures::SinkExt;
-use tmq::Context;
+use serde::Serialize;
+use zmq::{PUB, Context,Socket};
 
 #[derive(Serialize, Debug)]
 pub struct PVMessage {
@@ -34,10 +33,16 @@ impl PVMessage {
     }
 }
 
-pub async fn publish_pv_messages(messages: &[PVMessage], ipc_address: &str) -> Result<()> {
-    let mut socket = tmq::publish(&Context::new()).bind(ipc_address)?;
+pub fn zmq_bind(ipc_address: &str) -> Result<Socket> {
+    let socket = Context::new().socket(PUB)?;
+    socket.bind(ipc_address)?;
+
+    Ok(socket)
+}
+
+pub fn publish_pv_messages(messages: &[PVMessage], socket: &Socket) -> Result<()> {
     let serialized = serialize(&messages)?;
-    socket.send(vec![serialized]).await?;
+    socket.send(serialized, 0)?;
 
     Ok(())
 }
