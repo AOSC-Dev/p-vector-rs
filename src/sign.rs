@@ -76,6 +76,34 @@ pub fn load_certificate<P: AsRef<Path>>(cert_path: P) -> Result<Cert> {
     Cert::from_file(cert_path.as_ref())
 }
 
+pub fn sign_message_agent(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
+    use sequoia_ipc::gnupg::{Context, KeyPair};
+    let policy = StandardPolicy::new();
+    let keypair = cert
+        .keys()
+        .with_policy(&policy, None)
+        .supported()
+        .alive()
+        .revoked(false)
+        .for_signing()
+        .next();
+    if keypair.is_none() {
+        return Err(anyhow!("No usable signing key found in your certificate."));
+    }
+    let pubkey = keypair.unwrap().key();
+    let ctx = Context::new()?;
+    let offloaded_keypair = KeyPair::new(&ctx, pubkey)?;
+    let mut data_sink = Vec::new();
+    let message = Message::new(&mut data_sink);
+    let mut message = Signer::new(message, offloaded_keypair)
+        .cleartext()
+        .build()?;
+    message.write_all(content)?;
+    message.finalize()?;
+
+    Ok(data_sink)
+}
+
 pub fn sign_message(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
     let policy = StandardPolicy::new();
     let keypair = cert

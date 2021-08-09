@@ -22,7 +22,7 @@ use tokio::task::spawn_blocking;
 
 use crate::config::ReleaseConfig;
 use crate::scan::{mtime, sha256sum};
-use crate::sign::{load_certificate, sign_message};
+use crate::sign::{load_certificate, sign_message, sign_message_agent};
 
 #[derive(Clone, Debug)]
 struct PackageTemplate {
@@ -124,7 +124,7 @@ fn create_release_file(
     config: &ReleaseConfig,
     m: &BranchMeta,
     ttl: u64,
-    cert: &Option<sequoia_openpgp::Cert>,
+    cert: &Option<(sequoia_openpgp::Cert, bool)>,
 ) -> Result<()> {
     use std::convert::TryInto;
     use std::fs::File as StdFile;
@@ -170,7 +170,12 @@ fn create_release_file(
     let rendered = rendered.unwrap();
     if let Some(ref cert) = cert {
         // TODO: don't fail when signing failed
-        let signed = sign_message(cert, rendered.as_bytes())?;
+        let signed = if !cert.1 {
+            // if the key is not offloaded
+            sign_message(&cert.0, rendered.as_bytes())?
+        } else {
+            sign_message_agent(&cert.0, rendered.as_bytes())?
+        };
         let mut f = StdFile::create(branch_root.join("InRelease"))?;
         f.write_all(&signed)?;
     } else {
@@ -190,7 +195,12 @@ fn create_release_files(
 ) -> Result<()> {
     let cert = if let Some(cert) = &config.cert {
         info!("Signing release files using certificate: {}", cert);
-        Some(load_certificate(cert)?)
+        if let Some(cert) = cert.strip_prefix("gpg://") {
+            // (cert, offloaded)
+            Some((load_certificate(cert)?, true))
+        } else {
+            Some((load_certificate(cert)?, false))
+        }
     } else {
         None
     };

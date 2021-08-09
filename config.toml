@@ -17,6 +17,9 @@ label = "AOSC OS"
 # Code name
 codename = "Hotfix"
 # Signing private key file (the certificate must include a signing (sub-)key)
+# If your secret key is not a file (because it is on a smartcard or hardware token):
+# Please export its public key using `gpg` and uncomment then edit the line below
+# certificate = "gpg:///etc/p-vector/sign.pubkey"
 certificate = "/etc/p-vector/sign.key"
 # Delay between each QA (analyze) run (in hours)
 # set this value to 0 to run QA each time; set to -1 to disable QA function altogether
