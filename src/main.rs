@@ -1,10 +1,17 @@
-use std::{collections::HashSet, path::{Path, PathBuf}, time::Duration};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use anyhow::Result;
 use futures::future::Either;
 use log::{error, info};
 use sqlx::PgPool;
-use tokio::{task::{block_in_place, spawn_blocking}, time::sleep};
+use tokio::{
+    task::{block_in_place, spawn_blocking},
+    time::sleep,
+};
 use walkdir::DirEntry;
 
 use crate::scan::collect_removed_packages;
@@ -185,6 +192,7 @@ fn ask_for_key_info() -> Result<String> {
 }
 
 async fn generate_key(config: &str) -> Result<()> {
+    use secrecy::ExposeSecret;
     use std::convert::TryInto;
     use time::OffsetDateTime;
     use tokio::fs::{create_dir_all, File};
@@ -199,8 +207,12 @@ async fn generate_key(config: &str) -> Result<()> {
     let pub_path = path.join(format!("{}.pub", cert.id));
     let mut p_file = File::create(&priv_path).await?;
     let mut c_file = File::create(&pub_path).await?;
-    p_file.write_all(&cert.privkey).await?;
-    c_file.write_all(&cert.pubkey).await?;
+    p_file
+        .write_all(cert.privkey.expose_secret().as_ref())
+        .await?;
+    c_file
+        .write_all(&cert.pubkey.expose_secret().as_ref())
+        .await?;
     let expiry = OffsetDateTime::from_unix_timestamp(cert.expiry.try_into().unwrap());
     let expiry_format = expiry.format("%F %R %z");
     let inst = sign::generate_instructions(
@@ -272,7 +284,12 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     Ok(())
 }
 
-async fn ipc_publish(config: config::Config, pool: &PgPool, packages: &Vec<scan::PackageMeta>, deleted: &Vec<PathBuf>) -> Result<()> {
+async fn ipc_publish(
+    config: config::Config,
+    pool: &PgPool,
+    packages: &Vec<scan::PackageMeta>,
+    deleted: &Vec<PathBuf>,
+) -> Result<()> {
     if let Some(ref ipc_address) = config.config.change_notifier {
         let socket = ipc::zmq_bind(ipc_address)?;
         // sleep 1 second so that the client is ready
@@ -284,7 +301,8 @@ async fn ipc_publish(config: config::Config, pool: &PgPool, packages: &Vec<scan:
             ipc::publish_pv_messages(&removed, &socket)?;
             ipc::publish_pv_messages(&changed, &socket)?;
             Ok(())
-        }).await??;
+        })
+        .await??;
     }
 
     Ok(())

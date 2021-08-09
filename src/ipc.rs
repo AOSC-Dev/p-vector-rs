@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bincode::serialize;
 use serde::Serialize;
-use zmq::{PUB, Context,Socket};
+use zmq::{Context, Socket, PUB};
 
 #[derive(Serialize, Debug)]
 pub struct PVMessage {
