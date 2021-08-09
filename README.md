@@ -7,7 +7,7 @@ Multi repository, finding potential file collisions, checking shared object comp
 -->
 
 ## Build Dependencies
-- Rust 1.50+
+- Rust 1.51+
 - Clang/LLVM
 - `pkg-config`
 

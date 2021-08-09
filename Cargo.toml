@@ -23,6 +23,7 @@ faster-hex = "0.6"
 crossbeam-queue = "0.3"
 tempfile = "3.2"
 time = { version = "0.2", default-features = false }
+secrecy = "0.8"
 sequoia-openpgp = { version = "1.3", features = ["crypto-nettle"], default-features = false }
 # parser implementations
 nom = "^6"
