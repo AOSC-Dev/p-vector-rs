@@ -100,6 +100,34 @@ If you skipped the `certificate` setting in the previous section, you need to pa
 APT repository needs to be signed in order to verify the integrity of the files in your repository. APT expect the signatures in the OpenPGP format.
 P-Vector currently can handle OpenPGP signing itself or delegate the signing process to an external provider in senarios where it is necessary.
 
+If you have no idea what OpenPGP signing or GnuPG is, please use the "use P-Vector to generate the certificate" instructions below.
+
+If you plan to use an existing key for signing, please check the following support matrix to see if P-Vector supports the algorithm of your signing key.
+
+<details>
+<summary>Click here to see the support matrix</summary>
+<p>
+
+The following general public key algorithms are supported:
+- RSA
+- DSA
+- ECC
+
+When using ECC signing, the following signing algorithms are supported:
+- ECDSA
+- EdDSA
+
+When using ECC signing, the following elliptic curves are supported:
+- Ed25519 (X25519)
+- Cv25519 (Curve25519)
+- Brainpool P-256
+- Brainpool P-512
+- NIST P-256
+- NIST P-384
+- NIST P-521
+</p>
+</details>
+
 If you don't want to use `gpg` or don't know how to use it, you can **use P-Vector to generate the certificate**:
 <details>
 <summary>Click here to see the instructions for generating a certificate using P-Vector</summary>
