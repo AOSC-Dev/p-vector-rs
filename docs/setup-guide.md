@@ -118,8 +118,8 @@ When using ECC signing, the following signing algorithms are supported:
 - EdDSA
 
 When using ECC signing, the following elliptic curves are supported:
-- Ed25519 (X25519)
-- Cv25519 (Curve25519)
+- Ed25519 (when using EdDSA)
+- Cv25519 (X25519/Curve25519)
 - Brainpool P-256
 - Brainpool P-512
 - NIST P-256
