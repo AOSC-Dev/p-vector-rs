@@ -342,17 +342,22 @@ INSERT INTO pv_package_duplicate SELECT * FROM pv_packages WHERE filename=$4"#,
     // update dependencies information
     for dep in PKG_RELATION {
         if let Some(d) = meta.extra.get(dep.as_bytes()) {
-            let value = std::str::from_utf8(d).ok();
-            sqlx::query!(
-                "INSERT INTO pv_package_dependencies VALUES($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT pv_package_dependencies_pkey DO UPDATE SET value = $5",
-                meta.name,
-                meta.version,
-                repo,
-                dep,
-                value
-            )
-            .execute(&mut *pool)
-            .await?;
+            let value =
+                std::str::from_utf8(d)
+                    .ok()
+                    .and_then(|x| if x.is_empty() { None } else { Some(x) });
+            if let Some(value) = value {
+                sqlx::query!(
+                    "INSERT INTO pv_package_dependencies VALUES($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT pv_package_dependencies_pkey DO UPDATE SET value = $5",
+                    meta.name,
+                    meta.version,
+                    repo,
+                    dep,
+                    value
+                )
+                .execute(&mut *pool)
+                .await?;
+            }
         }
     }
     // update so information
