@@ -26,6 +26,7 @@ use crate::sign::{load_certificate, sign_message};
 
 const DEB822_DATE: &str = "%a, %d %b %Y %H:%M:%S %z";
 
+#[derive(Clone, Debug)]
 struct PackageTemplate {
     name: String,
     version: String,
@@ -436,4 +437,65 @@ Valid-Until: Sat, 24 Jul 2021 10:54:24 +0000
 Architectures: amd64 arm64 loongson3 ppc64el"#;
     let captured = parse_valid_date(test_data.as_bytes()).unwrap();
     assert_eq!(captured.1, &b"Sat, 24 Jul 2021 10:54:24 +0000"[..]);
+}
+
+#[test]
+fn test_package_generate() {
+    use serde_json::json;
+    let test_package = PackageTemplate {
+        name: "test".to_string(),
+        version: "1.0".to_string(),
+        section: Some("section".to_string()),
+        arch: Some("amd64".to_string()),
+        inst_size: Some(1000),
+        maintainer: Some("McTestFace <test@aosc.io>".to_string()),
+        path: Some("path".to_string()),
+        size: Some(10),
+        sha256: Some("sha256".to_string()),
+        description: Some("description".to_string()),
+        dep: None,
+    };
+    let mut test_package_2 = test_package.clone();
+    let rendered = PackagesTemplate {
+        packages: vec![test_package],
+    }
+    .render_once()
+    .unwrap();
+    assert_eq!(
+        rendered,
+        r#"Package: test
+Version: 1.0
+Section: section
+Architecture: amd64
+Installed-Size: 1000
+Maintainer: McTestFace <test@aosc.io>
+Filename: path
+Size: 10
+SHA256: sha256
+Description: description
+Depends: test (=1)
+
+"#
+    );
+    test_package_2.dep = Some(json!([["Depends", "test (=1)"]]));
+    let rendered = PackagesTemplate {
+        packages: vec![test_package_2],
+    }
+    .render_once()
+    .unwrap();
+    assert_eq!(
+        rendered,
+        r#"Package: test
+Version: 1.0
+Section: section
+Architecture: amd64
+Installed-Size: 1000
+Maintainer: McTestFace <test@aosc.io>
+Filename: path
+Size: 10
+SHA256: sha256
+Description: description
+
+"#
+    );
 }

@@ -7,7 +7,7 @@ Maintainer: <%- p.maintainer.unwrap_or_else(|| "Bot <bot@aosc.io>".to_string()) 
 Filename: <%- p.path.unwrap() %>
 Size: <%- p.size.unwrap_or(0) %>
 SHA256: <%- p.sha256.unwrap() %>
-Description: <%- p.description.unwrap() %><% if let Some(dep) = p.dep { %><% for d in dep.as_array().unwrap() { let d = d.as_array().unwrap(); %>
-<% if let Some(k) = d[0].as_str() { %><%- k %>: <%- d[1].as_str().unwrap() %><% } %><% } %><% } %>
+Description: <%- p.description.unwrap() %><% if let Some(dep) = p.dep { %><% for d in dep.as_array().unwrap() { let d = d.as_array().unwrap(); %><% if let Some(k) = d[0].as_str() { %>
+<%- k %>: <%- d[1].as_str().unwrap() %><% } %><% } %><% } %>
 
 <% } %>
