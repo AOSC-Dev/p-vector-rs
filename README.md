@@ -30,7 +30,7 @@ PostgreSQL server is required when building because the compiler will check if t
 
 ## Setup Instructions
 1. Download or build `p-vector`
-2. You will need a signing key for your repository, you can generate a new one using `gpg --gen-key`
+2. You will need a signing key for your repository, you can generate a new one using `gpg --gen-key` or `p-vector gen-key`
 3. Open `config.toml` in your favorite text editor and adapt the configurations to your needs
 4. Save the configuration to somewhere (e.g. `/etc/p-vector/config.toml`)
 5. Start the PostgreSQL server if not already done so
