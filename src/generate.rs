@@ -473,7 +473,6 @@ Filename: path
 Size: 10
 SHA256: sha256
 Description: description
-Depends: test (=1)
 
 "#
     );
@@ -495,6 +494,7 @@ Filename: path
 Size: 10
 SHA256: sha256
 Description: description
+Depends: test (=1)
 
 "#
     );
