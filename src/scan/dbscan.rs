@@ -255,7 +255,7 @@ WHERE package=$2 AND repo=$3 AND _vercomp=
         let record = record.unwrap();
         let method = if record.newer.unwrap_or(false) {
             b'^'
-        } else if p.filename != record.filename {
+        } else if p.deb.version == record.version {
             b'*'
         } else {
             // not a new package, version is not newer: older package
