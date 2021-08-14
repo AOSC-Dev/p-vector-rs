@@ -141,6 +141,8 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     info!("{} topics discovered.", topics.len());
     let needs_regenerate = generate::need_regenerate(pool, mirror_root).await?;
     let mut tasks = Vec::new();
+    let tempdir = tempfile::tempdir()?;
+    let tempdir_path = tempdir.path().to_owned();
     for topic in topics {
         let mut skip = true;
         for t in needs_regenerate.iter() {
@@ -155,11 +157,13 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
         }
         let name = topic.to_string_lossy().to_string();
         let name_clone = name.clone();
+        let tempdir_path = tempdir_path.clone();
+        let tempdir_path_clone = tempdir_path.clone();
         tasks.push(Either::Left(async move {
-            generate::render_packages_in_component(pool, &name, mirror_root).await
+            generate::render_packages_in_component(pool, &name, &tempdir_path).await
         }));
         tasks.push(Either::Right(async move {
-            generate::render_contents_in_component(pool, &name_clone, mirror_root).await
+            generate::render_contents_in_component(pool, &name_clone, &tempdir_path_clone).await
         }));
     }
     let results = futures::future::join_all(tasks).await;
@@ -167,7 +171,19 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
         log_error!(result, "generating manifest");
     }
     let release_config = config::convert_branch_description_config(&config);
-    generate::render_releases(pool, mirror_root, release_config, &needs_regenerate).await?;
+    generate::render_releases(pool, &tempdir_path, release_config, &needs_regenerate).await?;
+    let mirror_root = mirror_root.to_owned();
+    spawn_blocking(move || {
+        fs_extra::dir::move_dir(
+            tempdir_path.join("dists"),
+            &mirror_root,
+            &fs_extra::dir::CopyOptions {
+                overwrite: true,
+                ..Default::default()
+            },
+        )
+    })
+    .await??;
     info!("Generation finished.");
 
     Ok(())
