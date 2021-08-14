@@ -331,13 +331,17 @@ RETURNING (xmax = 0) AS new"#,
             r#"WITH d1 AS (DELETE FROM pv_package_sodep WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
 , d2 AS (DELETE FROM pv_package_files WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
 , d3 AS (DELETE FROM pv_package_dependencies WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
-, d4 AS (DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)
-INSERT INTO pv_package_duplicate SELECT * FROM pv_packages WHERE filename=$4"#,
+DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
             meta.name,
             meta.version,
-            repo,
-            package.filename
+            repo
         ).execute(&mut *pool).await?;
+        sqlx::query!(
+            "INSERT INTO pv_package_duplicate SELECT * FROM pv_packages WHERE filename=$1",
+            package.filename
+        )
+        .execute(&mut *pool)
+        .await?;
     }
     // update dependencies information
     for dep in PKG_RELATION {
