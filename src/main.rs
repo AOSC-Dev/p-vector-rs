@@ -120,6 +120,10 @@ async fn analysis_action(pool: &PgPool, delay: isize) -> Result<()> {
         info!("Analysis disabled.");
         return Ok(());
     }
+    info!("Refreshing materialized views ... ");
+    if let Err(e) = db::refresh_views(pool).await {
+        error!("Error refreshing views: {}", e);
+    }
     info!("Running analysis ...");
     db::run_analysis(pool, delay.try_into().unwrap()).await?;
     info!("Analysis completed.");

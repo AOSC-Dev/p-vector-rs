@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::Result;
 use log::{error, info};
 use sqlx::PgPool;
-use tokio::fs::remove_dir_all;
+use tokio::fs::{remove_dir_all, remove_dir};
 
 /// List all the known branches in the database
 async fn list_existing_branches(pool: &PgPool) -> Result<Vec<String>> {
@@ -23,23 +23,16 @@ async fn clean_dist_files(to_remove: &[&String], mirror_root: &Path) {
         tasks.push(async move {
             info!("Deleting dists: {} ...", remove);
             let path = mirror_root.join("dists").join(remove);
-            if let Err(e) = remove_dir_all(path).await {
+            if let Err(e) = remove_dir_all(&path).await {
                 error!("Failed to remove \"{}\": {}", remove, e);
+            }
+            if let Some(p) = path.parent() {
+                // remove the parent directory if it's empty
+                remove_dir(p).await.ok();
             }
         });
     }
     futures::future::join_all(tasks).await;
-}
-
-async fn refresh_views(pool: &PgPool) -> Result<()> {
-    tokio::try_join!(
-        sqlx::query!("REFRESH MATERIALIZED VIEW v_packages_new").execute(pool),
-        sqlx::query!("REFRESH MATERIALIZED VIEW v_dpkg_dependencies").execute(pool),
-        sqlx::query!("REFRESH MATERIALIZED VIEW v_so_breaks").execute(pool),
-        sqlx::query!("REFRESH MATERIALIZED VIEW v_so_breaks_dep").execute(pool),
-    )?;
-
-    Ok(())
 }
 
 /// Execute garbage collection
@@ -69,13 +62,7 @@ pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()>
             .execute(pool)
             .await?;
     }
-    let result = tokio::join!(
-        clean_dist_files(&to_remove, mirror_root.as_ref()),
-        refresh_views(&pool)
-    );
-    if let Err(e) = result.1 {
-        error!("Error refreshing views: {}", e);
-    }
+    clean_dist_files(&to_remove, mirror_root.as_ref()).await;
 
     Ok(())
 }

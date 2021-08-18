@@ -120,6 +120,18 @@ pub async fn remove_packages_by_path<P: AsRef<Path>>(pool: &PgPool, path: &[P]) 
     Ok(())
 }
 
+/// Refresh materialized views
+pub async fn refresh_views(pool: &PgPool) -> Result<()> {
+    tokio::try_join!(
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_packages_new").execute(pool),
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_dpkg_dependencies").execute(pool),
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_so_breaks").execute(pool),
+        sqlx::query!("REFRESH MATERIALIZED VIEW v_so_breaks_dep").execute(pool),
+    )?;
+
+    Ok(())
+}
+
 /// Load sqlite_fdw extension (external binary)
 pub async fn load_fdw_ext(pool: &PgPool) -> Result<()> {
     sqlx::query!("CREATE EXTENSION IF NOT EXISTS sqlite_fdw")
