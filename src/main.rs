@@ -107,7 +107,9 @@ async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
 
 async fn sync_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     if config.config.abbs_sync {
-        sync::sync_db_updates(pool).await
+        sync::sync_db_updates(pool).await?;
+        info!("sync finished.");
+        Ok(())
     } else {
         info!("ABBS data sync is disabled.");
         Ok(())

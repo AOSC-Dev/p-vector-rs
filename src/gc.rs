@@ -63,6 +63,7 @@ pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()>
             .await?;
     }
     clean_dist_files(&to_remove, mirror_root.as_ref()).await;
+    info!("GC finished.");
 
     Ok(())
 }
