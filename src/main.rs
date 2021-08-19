@@ -178,6 +178,11 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     generate::render_releases(pool, &tempdir_path, release_config, &needs_regenerate).await?;
     let mirror_root = mirror_root.to_owned();
     spawn_blocking(move || {
+        let new_dists = tempdir_path.join("dists");
+        if !new_dists.exists() {
+            info!("No new dists generated.");
+            return Ok(0);
+        }
         fs_extra::dir::move_dir(
             tempdir_path.join("dists"),
             &mirror_root,
