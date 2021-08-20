@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use log::info;
+use log::{info, error};
 use sqlx::{Executor, PgPool};
 
 const PV_QA_SQL_SCRIPT: &str = include_str!("../sql/pkgissues.sql");
@@ -40,6 +40,10 @@ pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
     if refresh.unwrap_or(false) {
         info!("Analysis skipped.");
         return Ok(());
+    }
+    info!("Refreshing materialized views ... ");
+    if let Err(e) = refresh_views(pool).await {
+        error!("Error refreshing views: {}", e);
     }
     // unprepared transaction is used since this is a SQL script file
     tx.execute(PV_QA_SQL_SCRIPT).await?;
