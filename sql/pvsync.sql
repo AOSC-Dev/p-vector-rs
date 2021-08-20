@@ -26,4 +26,3 @@ INSERT INTO "package_dependencies" SELECT * FROM abbs."package_dependencies";
 
 TRUNCATE "dpkg_repo_stats";
 INSERT INTO "dpkg_repo_stats" SELECT * FROM abbs."dpkg_repo_stats";
-
