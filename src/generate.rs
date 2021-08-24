@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Result, Error};
 use async_compression::tokio::write::{GzipEncoder, XzEncoder};
 use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
@@ -260,9 +260,21 @@ GROUP BY df.path, df.name"#,
         .flatten()
         .collect::<String>();
     let dist_path = component_root.join(format!("Contents-{}.gz", arch));
-    let mut f = GzipEncoder::new(File::create(dist_path).await?);
-    f.write_all(content.as_bytes()).await?;
-    f.shutdown().await?;
+    let dist_path_un = component_root.join(format!("Contents-{}", arch));
+    tokio::try_join!(
+        async {
+            let mut f = GzipEncoder::new(File::create(dist_path).await?);
+            f.write_all(content.as_bytes()).await?;
+            f.shutdown().await?;
+            Ok::<(), Error>(())
+        },
+        async {
+            let mut f1 = File::create(dist_path_un).await?;
+            f1.write_all(content.as_bytes()).await?;
+            f1.shutdown().await?;
+            Ok::<(), Error>(())
+        }
+    )?;
 
     Ok(())
 }
