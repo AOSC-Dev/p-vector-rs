@@ -173,8 +173,8 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
         log_error!(result, "generating manifest");
     }
     let release_config = config::convert_branch_description_config(&config);
-    generate::render_releases(pool, &tempdir_path, release_config, &needs_regenerate).await?;
     let mirror_root = mirror_root.to_owned();
+    let mirror_root_clone = mirror_root.clone();
     spawn_blocking(move || {
         let new_dists = tempdir_path.join("dists");
         if !new_dists.exists() {
@@ -191,6 +191,7 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
         )
     })
     .await??;
+    generate::render_releases(pool, &mirror_root_clone, release_config, &needs_regenerate).await?;
     info!("Generation finished.");
 
     Ok(())

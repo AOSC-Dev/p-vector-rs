@@ -275,7 +275,7 @@ pub async fn render_contents_in_component(
     info!("Generating Contents for {}", component);
 
     let records = sqlx::query!(
-        "SELECT architecture FROM pv_repos WHERE architecture != 'all' AND path=$1",
+        "SELECT architecture FROM pv_repos WHERE path=$1",
         component
     )
     .fetch_all(pool)
