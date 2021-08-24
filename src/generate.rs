@@ -172,7 +172,7 @@ fn create_release_file(
     let rendered = rendered.unwrap();
     if let Some(ref cert) = cert {
         // TODO: don't fail when signing failed
-        let signed = sign_message(&cert, rendered.as_bytes())?;
+        let signed = sign_message(cert, rendered.as_bytes())?;
         let mut f = StdFile::create(branch_root.join("InRelease"))?;
         f.write_all(&signed)?;
     } else {
@@ -274,12 +274,9 @@ pub async fn render_contents_in_component(
 ) -> Result<()> {
     info!("Generating Contents for {}", component);
 
-    let records = sqlx::query!(
-        "SELECT architecture FROM pv_repos WHERE path=$1",
-        component
-    )
-    .fetch_all(pool)
-    .await?;
+    let records = sqlx::query!("SELECT architecture FROM pv_repos WHERE path=$1", component)
+        .fetch_all(pool)
+        .await?;
     let component_root = mirror_root.join("dists").join(component);
     create_dir_all(&component_root).await?;
 
@@ -379,7 +376,7 @@ async fn need_refresh(inrel_path: &Path) -> Result<bool> {
     let mut content = Vec::new();
     f.read_to_end(&mut content).await?;
     let captured = parse_valid_date(&content).map_err(|e| anyhow!(e.to_string()))?;
-    let captured_str = std::str::from_utf8(&captured.1)?;
+    let captured_str = std::str::from_utf8(captured.1)?;
     let parsed: time::OffsetDateTime =
         time::parse(captured_str, DEB822_DATE).map_err(|e| anyhow!(e))?;
     let parsed_timestamp = parsed.to_offset(offset!(+0)).unix_timestamp();

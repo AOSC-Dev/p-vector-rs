@@ -176,7 +176,7 @@ pub fn validate_packages<P: AsRef<Path>>(
                 }
                 if stat.len() == (size as u64)
                     && (super::mtime(&stat).unwrap_or(0) == p.mtime.unwrap_or(0) as u64
-                        || sha256sum_validate(&path, &p.sha256.as_ref().unwrap()).unwrap_or(false))
+                        || sha256sum_validate(&path, p.sha256.as_ref().unwrap()).unwrap_or(false))
                 {
                     // mark as already scanned
                     return Some(path);
@@ -399,8 +399,8 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
     for f in &contents.files {
         let path = f.path.parent().and_then(|p| p.to_str());
         let filename = f.path.file_name().and_then(|p| p.to_str());
-        let uname = f.uname.as_ref().and_then(|p| std::str::from_utf8(&p).ok());
-        let gname = f.gname.as_ref().and_then(|p| std::str::from_utf8(&p).ok());
+        let uname = f.uname.as_ref().and_then(|p| std::str::from_utf8(p).ok());
+        let gname = f.gname.as_ref().and_then(|p| std::str::from_utf8(p).ok());
         sqlx::query!(
             r#"INSERT INTO pv_package_files VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"#,
             meta.name, meta.version, repo, path, filename, f.size as i64, f.type_ as i16, f.perms as i32, f.uid as i64, f.gid as i64, uname, gname

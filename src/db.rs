@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use log::{info, error};
+use log::{error, info};
 use sqlx::{Executor, PgPool};
 
 const PV_QA_SQL_SCRIPT: &str = include_str!("../sql/pkgissues.sql");

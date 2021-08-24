@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::Result;
 use log::{error, info};
 use sqlx::PgPool;
-use tokio::fs::{remove_dir_all, remove_dir};
+use tokio::fs::{remove_dir, remove_dir_all};
 
 /// List all the known branches in the database
 async fn list_existing_branches(pool: &PgPool) -> Result<Vec<String>> {

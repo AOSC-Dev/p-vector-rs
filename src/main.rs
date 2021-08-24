@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
 
 async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     scan_action(config.clone(), pool).await?;
-    let stage1_results = tokio::join!(sync_action(&config, &pool), gc_action(&config, pool));
+    let stage1_results = tokio::join!(sync_action(&config, pool), gc_action(&config, pool));
     let stage2_results = tokio::join!(
         analysis_action(pool, config.config.qa_interval),
         release_action(&config, pool)
@@ -172,7 +172,7 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     for result in results {
         log_error!(result, "generating manifest");
     }
-    let release_config = config::convert_branch_description_config(&config);
+    let release_config = config::convert_branch_description_config(config);
     let mirror_root = mirror_root.to_owned();
     let mirror_root_clone = mirror_root.clone();
     spawn_blocking(move || {
@@ -235,7 +235,7 @@ async fn generate_key(config: &str) -> Result<()> {
         .write_all(cert.privkey.expose_secret().as_ref())
         .await?;
     c_file
-        .write_all(&cert.pubkey.expose_secret().as_ref())
+        .write_all(cert.pubkey.expose_secret().as_ref())
         .await?;
     let expiry = OffsetDateTime::from_unix_timestamp(cert.expiry.try_into().unwrap());
     let expiry_format = expiry.format("%F %R %z");
@@ -273,7 +273,7 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     let files = spawn_blocking(move || scan::collect_all_packages(&mirror_root_clone)).await??;
     info!("{} deb files discovered.", files.len());
     info!("Collecting packages information from database ...");
-    let db_packages = list_all_packages(&pool, &topics).await?;
+    let db_packages = list_all_packages(pool, &topics).await?;
     info!("Database knows {} packages.", db_packages.len());
     info!("Pre-scanning packages to determine which packages are different ...");
     let (delete, scanned) =
@@ -311,8 +311,8 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
 async fn ipc_publish(
     config: config::Config,
     pool: &PgPool,
-    packages: &Vec<scan::PackageMeta>,
-    deleted: &Vec<PathBuf>,
+    packages: &[scan::PackageMeta],
+    deleted: &[PathBuf],
 ) -> Result<()> {
     if let Some(ref ipc_address) = config.config.change_notifier {
         let socket = ipc::zmq_bind(ipc_address)?;
