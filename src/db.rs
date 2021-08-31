@@ -46,7 +46,11 @@ pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
         error!("Error refreshing views: {}", e);
     }
     // unprepared transaction is used since this is a SQL script file
+    info!("Running analysis routine ...");
     tx.execute(PV_QA_SQL_SCRIPT).await?;
+    // vacuum the database
+    info!("Running database garbage collection ...");
+    sqlx::query!("VACUUM ANALYZE").execute(pool).await?;
 
     Ok(())
 }
