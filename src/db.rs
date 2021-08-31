@@ -93,13 +93,13 @@ pub async fn get_removed_packages_message<P: AsRef<Path>>(
     for path in path {
         let path = path.as_ref().to_string_lossy();
         let record = sqlx::query!(
-            "SELECT package, version, repo, architecture FROM pv_packages WHERE filename = $1",
+            "SELECT package, version, r.branch || '-' || r.component AS repo, p.architecture FROM pv_packages p JOIN pv_repos r ON p.repo = r.name WHERE filename = $1",
             path.as_ref()
         )
         .fetch_one(pool)
         .await?;
         messages.push(crate::ipc::PVMessage::new(
-            record.repo,
+            record.repo.unwrap_or_else(|| "?".to_string()),
             record.package,
             record.architecture,
             b'-',
