@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{anyhow, Result, Error};
+use anyhow::{anyhow, Error, Result};
 use async_compression::tokio::write::{GzipEncoder, XzEncoder};
 use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
@@ -15,7 +15,10 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use sailfish::TemplateOnce;
 use serde_json::Value;
 use sqlx::PgPool;
-use time::prelude::*;
+use time::{
+    format_description::FormatItem,
+    macros::{format_description, offset},
+};
 use tokio::fs::{create_dir_all, metadata, File};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::task::spawn_blocking;
@@ -24,7 +27,8 @@ use crate::config::ReleaseConfig;
 use crate::scan::{mtime, sha256sum};
 use crate::sign::{load_certificate, sign_message};
 
-const DEB822_DATE: &str = "%a, %d %b %Y %H:%M:%S %z";
+/// Debian 822 date: "%a, %d %b %Y %H:%M:%S %z"
+const DEB822_DATE: &[FormatItem] = format_description!("[weekday repr:short], [day] [month repr:short] [year] [hour repr:24]:[minute]:[second] [offset_hour sign:mandatory][offset_minute]");
 
 #[derive(Clone, Debug)]
 struct PackageTemplate {
@@ -148,9 +152,9 @@ fn create_release_file(
         .unwrap()
         .as_secs();
     let projected_timestamp = system_time + (ttl * 24 * 3600);
-    let system_time = time::OffsetDateTime::from_unix_timestamp(system_time.try_into().unwrap());
+    let system_time = time::OffsetDateTime::from_unix_timestamp(system_time.try_into().unwrap())?;
     let projected_timestamp =
-        time::OffsetDateTime::from_unix_timestamp(projected_timestamp.try_into().unwrap());
+        time::OffsetDateTime::from_unix_timestamp(projected_timestamp.try_into().unwrap())?;
 
     let rendered = (InReleaseTemplate {
         origin: config.origin.clone(),
@@ -158,8 +162,8 @@ fn create_release_file(
         codename: config.codename.clone(),
         suite: m.branch.clone(),
         description,
-        date: system_time.format(DEB822_DATE),
-        valid_until: projected_timestamp.format(DEB822_DATE),
+        date: system_time.format(&DEB822_DATE)?,
+        valid_until: projected_timestamp.format(&DEB822_DATE)?,
         architectures: m.arch.as_ref().unwrap().to_vec(),
         components: m.comp.as_ref().unwrap().to_vec(),
         files: release_files.unwrap(),
@@ -389,8 +393,7 @@ async fn need_refresh(inrel_path: &Path) -> Result<bool> {
     f.read_to_end(&mut content).await?;
     let captured = parse_valid_date(&content).map_err(|e| anyhow!(e.to_string()))?;
     let captured_str = std::str::from_utf8(captured.1)?;
-    let parsed: time::OffsetDateTime =
-        time::parse(captured_str, DEB822_DATE).map_err(|e| anyhow!(e))?;
+    let parsed = time::OffsetDateTime::parse(captured_str, &DEB822_DATE).map_err(|e| anyhow!(e))?;
     let parsed_timestamp = parsed.to_offset(offset!(+0)).unix_timestamp();
     let system_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let projected_timestamp = system_time + (24 * 3600);
@@ -426,11 +429,10 @@ pub async fn need_regenerate(pool: &PgPool, mirror_root: &Path) -> Result<Vec<St
 
 #[test]
 fn test_date_parsing() {
+    use time::macros::datetime;
     let test_date = "Wed, 14 Jul 2021 10:54:24 +0000";
-    let expected = date!(2021 - 07 - 14)
-        .with_time(time!(10:54:24))
-        .assume_utc();
-    let parsed: time::OffsetDateTime = time::parse(test_date, DEB822_DATE).unwrap();
+    let expected = datetime!(2021 - 07 - 14 10:54:24 +0000);
+    let parsed = time::OffsetDateTime::parse(test_date, &DEB822_DATE).unwrap();
     assert_eq!(parsed, expected);
 }
 

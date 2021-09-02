@@ -8,6 +8,7 @@ use anyhow::Result;
 use futures::future::Either;
 use log::{error, info};
 use sqlx::PgPool;
+use time::macros::format_description;
 use tokio::{
     task::{block_in_place, spawn_blocking},
     time::sleep,
@@ -238,7 +239,9 @@ async fn generate_key(config: &str) -> Result<()> {
         .write_all(cert.pubkey.expose_secret().as_ref())
         .await?;
     let expiry = OffsetDateTime::from_unix_timestamp(cert.expiry.try_into().unwrap());
-    let expiry_format = expiry.format("%F %R %z");
+    let expiry_format = expiry?.format(&format_description!(
+        "[year]-[month]-[day] [hour]:[minute] [offset_hour sign:mandatory]:[offset_minute]"
+    ))?;
     let inst = sign::generate_instructions(
         pub_path.display().to_string(),
         priv_path.display().to_string(),
