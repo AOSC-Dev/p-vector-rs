@@ -268,12 +268,12 @@ async fn collect_package_changes(
 
 async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     let pool_path = Path::new(&config.config.path).join("pool");
+    let pool_path_clone = pool_path.clone();
     let mirror_root = config.config.path.clone();
     let mirror_root_path = Path::new(&mirror_root).to_owned();
-    let mirror_root_clone = mirror_root.clone();
     let topics = spawn_blocking(move || scan::discover_topics_components(&pool_path)).await??;
     info!("{} topics discovered.", topics.len());
-    let files = spawn_blocking(move || scan::collect_all_packages(&mirror_root_clone)).await??;
+    let files = spawn_blocking(move || scan::collect_all_packages(&pool_path_clone)).await??;
     info!("{} deb files discovered.", files.len());
     info!("Collecting packages information from database ...");
     let db_packages = list_all_packages(pool, &topics).await?;
