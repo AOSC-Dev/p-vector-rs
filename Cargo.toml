@@ -36,7 +36,7 @@ bincode = "^1"
 zmq = "0.9"
 # cli
 argh = "0.1"
-dialoguer = "0.8"
+dialoguer = "0.9"
 # async and database
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
 sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
