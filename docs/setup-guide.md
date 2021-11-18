@@ -102,9 +102,9 @@ APT repository needs to be signed in order to verify the integrity of the files 
 
 P-Vector can handle OpenPGP signing or delegate the signing process to an external provider in senarios where it is necessary. If you already have an existing key for signing, please refer to the "Using an existing key from ..." sections below.
 
-#### Generating new certificate using P-Vector
+#### Generating a new certificate using P-Vector
 
-You can use P-Vector to generate the certificate if you don't want to use `gpg` or don't know how to use it.
+You can use P-Vector to generate a certificate if you don't want to use `gpg` or don't know how to use it.
 <p>
 
 1. Run `p-vector gen-key` and follow the on-screen instructions.
@@ -145,7 +145,7 @@ When using ECC signing, the following elliptic curves are supported:
 </p>
 </details>
 
-#### Using an existing key from GnuPG keystore
+#### Using an existing key from the GnuPG keystore
 <p>
 
 1. Export the public key of the key of your choice by running `gpg --export <fingerprint> > pubkey.pgp`.
