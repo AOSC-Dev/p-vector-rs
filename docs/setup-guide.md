@@ -98,11 +98,25 @@ The configuration template is heavily commented, if you have used the older vers
 
 If you skipped the `certificate` setting in the previous section, you need to pay attention to this section.
 
-APT repository needs to be signed in order to verify the integrity of the files in your repository. APT expect the signatures in the OpenPGP format. P-Vector can handle OpenPGP signing or delegate the signing process to an external provider in senarios where it is necessary.
+APT repository needs to be signed in order to verify the integrity of the files in your repository. APT expects the signatures in the OpenPGP format.
 
-If you have no idea what OpenPGP signing or GnuPG is, please refer to the "Use P-Vector to generate certificates" section below.
+P-Vector can handle OpenPGP signing or delegate the signing process to an external provider in senarios where it is necessary. If you already have an existing key for signing, please refer to the "Using an existing key from ..." sections below.
 
-If you plan to use an existing key for signing, please check the following support matrix to see if P-Vector supports the algorithm of your signing key.
+#### Generating a new certificate using P-Vector
+
+You can use P-Vector to generate a certificate if you don't want to use `gpg` or don't know how to use it.
+<p>
+
+1. Run `p-vector gen-key` and follow the on-screen instructions.
+1. Make sure that the private key is stored in a safe location.
+1. Edit the `certificate` setting in your configuration file according to the instructions shown in step 1.
+1. You are good to go!
+
+</p>
+
+#### Using an existing key from local files
+
+If you plan to use an existing key for signing, please make sure P-Vector supports the algorithm of your signing key.
 
 <details>
 <summary>Click here to see the support matrix</summary>
@@ -131,24 +145,7 @@ When using ECC signing, the following elliptic curves are supported:
 </p>
 </details>
 
-If you don't want to use `gpg` or don't know how to use it, you can **use P-Vector to generate the certificate**:
-
-<details>
-<summary>Click here to see the instructions for generating a certificate using P-Vector</summary>
-<p>
-
-1. Run `p-vector gen-key` and follow the on-screen instructions.
-1. Make sure that the private key is stored in a safe location.
-1. Edit the `certificate` setting in your configuration file according to the instructions shown in step 1.
-1. You are good to go!
-
-</p>
-</details>
-
-If you want to use an **existing key from your GnuPG keystore**, you may want to follow the following instructions:
-
-<details>
-<summary>Click here to see the instructions for how to use a key from GnuPG</summary>
+#### Using an existing key from the GnuPG keystore
 <p>
 
 1. Export the public key of the key of your choice by running `gpg --export <fingerprint> > pubkey.pgp`.
@@ -158,12 +155,8 @@ If you want to use an **existing key from your GnuPG keystore**, you may want to
 1. You are good to go!
 
 </p>
-</details>
 
-If you want to use an **existing key from your smartcard or hardware security tokens** (e.g. Yubikey, Nitrokey, etc), you may want to follow the following instructions:
-
-<details>
-<summary>Click here to see the instructions for how to use the key from a smartcard/hardware security token</summary>
+#### Using an existing key from hardware security tokens (e.g. Yubikey, Nitrokey)
 <p>
 
 1. Fetch the public key from your hardware security token using `gpg --card-status`. This step will also generate a key stub on your local storage.
@@ -175,7 +168,6 @@ If you want to use an **existing key from your smartcard or hardware security to
 1. You are good to go!
 
 </p>
-</details>
 
 ### Test drive
 
