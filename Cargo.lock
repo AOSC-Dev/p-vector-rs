@@ -1372,7 +1372,7 @@ dependencies = [
 
 [[package]]
 name = "p-vector"
-version = "0.2.1-alpha.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "ar",
