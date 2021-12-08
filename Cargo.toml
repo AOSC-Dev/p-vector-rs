@@ -16,7 +16,7 @@ xz2 = "0.1"
 flate2 = "1.0"
 # utilities
 anyhow = "1.0"
-sha2 = "0.9"
+sha2 = "0.10"
 rayon = "1.5"
 sailfish = "0.3"
 faster-hex = "0.6"
