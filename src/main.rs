@@ -279,7 +279,7 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     let db_packages = list_all_packages(pool, &topics).await?;
     info!("Database knows {} packages.", db_packages.len());
     info!("Pre-scanning packages to determine which packages are different ...");
-    let (delete, scanned) =
+    let (delete, scanned, needs_update) =
         block_in_place(move || scan::validate_packages(mirror_root, &db_packages))?;
     let changed = get_changed_packages(&files, &scanned);
     info!(
@@ -292,6 +292,8 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
         info!("Nothing to scan.");
         return Ok(());
     }
+    info!("{} packages needs metadata refresh.", needs_update.len());
+    scan::update_unchanged_packages(pool, needs_update).await?;
     info!("Starting scanner ...");
     let mirror_root = mirror_root_path.clone();
     let packages =

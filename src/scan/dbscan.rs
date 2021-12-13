@@ -3,7 +3,7 @@
 use anyhow::{anyhow, Result};
 use crossbeam_queue::SegQueue;
 use flate2::read::GzDecoder;
-use log::{error, warn};
+use log::{error, warn, info};
 use rayon::prelude::*;
 use sqlx::{PgPool, Postgres, Transaction};
 use std::{
@@ -151,9 +151,10 @@ pub fn collect_removed_packages(removed: SegQueue<PathBuf>, mirror_root: &Path) 
 pub fn validate_packages<P: AsRef<Path>>(
     root: P,
     packages: &[db::PVPackage],
-) -> Result<(SegQueue<PathBuf>, Vec<PathBuf>)> {
+) -> Result<(SegQueue<PathBuf>, Vec<PathBuf>, SegQueue<(PathBuf, u64)>)> {
     let pool_root = root.as_ref();
     let to_remove = SegQueue::new();
+    let needs_update = SegQueue::new();
     let already_scanned = packages
         .par_iter()
         .filter_map(|p| {
@@ -170,15 +171,16 @@ pub fn validate_packages<P: AsRef<Path>>(
             let stat = stat.unwrap();
             if stat.is_file() {
                 let size = p.size.unwrap();
-                if size.is_negative() {
-                    // ... what?
+                let mtime = super::mtime(&stat).unwrap_or(0);
+                if size.is_negative() || stat.len() != (size as u64) {
+                    // ^ ... what?
                     return None;
                 }
-                if stat.len() == (size as u64)
-                    && (super::mtime(&stat).unwrap_or(0) == p.mtime.unwrap_or(0) as u64
-                        || sha256sum_validate(&path, p.sha256.as_ref().unwrap()).unwrap_or(false))
-                {
+                if mtime == p.mtime.unwrap_or(0) as u64 {
                     // mark as already scanned
+                    return Some(path);
+                } else if sha256sum_validate(&path, p.sha256.as_ref().unwrap()).unwrap_or(false) {
+                    needs_update.push((path.clone(), mtime));
                     return Some(path);
                 }
                 return None;
@@ -189,7 +191,7 @@ pub fn validate_packages<P: AsRef<Path>>(
         })
         .collect::<Vec<_>>();
 
-    Ok((to_remove, already_scanned))
+    Ok((to_remove, already_scanned, needs_update))
 }
 
 #[inline]
@@ -221,6 +223,28 @@ fn collect_changed_repos(packages: &[PackageMeta]) -> HashMap<String, Repository
     }
 
     repos
+}
+
+pub async fn update_unchanged_packages(
+    pool: &PgPool,
+    packages: SegQueue<(PathBuf, u64)>,
+) -> Result<()> {
+    while let Some(package) = packages.pop() {
+        if let Some(path) = package.0.to_str() {
+            info!("Updating {} ...", path);
+            sqlx::query!(
+                "UPDATE pv_packages SET mtime = $1 WHERE filename = $2",
+                package.1 as i64,
+                path
+            )
+            .execute(pool)
+            .await?;
+        } else {
+            warn!("{} contains invalid characters!", package.0.display());
+        }
+    }
+
+    Ok(())
 }
 
 /// Get what and how packages changed (needs to be run before `save_packages_to_db`)
