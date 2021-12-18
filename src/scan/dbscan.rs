@@ -3,7 +3,7 @@
 use anyhow::{anyhow, Result};
 use crossbeam_queue::SegQueue;
 use flate2::read::GzDecoder;
-use log::{error, warn, info};
+use log::{error, info, warn};
 use rayon::prelude::*;
 use sqlx::{PgPool, Postgres, Transaction};
 use std::{
@@ -537,10 +537,10 @@ fn scan_elf<R: Read>(
     elf_header.extend(content);
     let (soname, libraries) = parse_elf(&elf_header)?;
     for i in libraries {
-        requires.insert(i.to_string());
+        requires.insert(format!("{}.so", i);
     }
     if let Some(soname) = soname {
-        provides.insert(soname.to_string());
+        provides.insert(format!("{}.so", soname));
     }
 
     Ok(())
