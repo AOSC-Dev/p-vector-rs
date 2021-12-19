@@ -9,17 +9,17 @@ use sqlx::{PgPool, Postgres, Transaction};
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    io::{Read, SeekFrom},
+    io::Read,
     path::{Path, PathBuf},
 };
-use std::{fs::Metadata, io::Seek, path::Component};
+use std::{fs::Metadata, path::Component};
 use xz2::read::XzDecoder;
 
 use crate::ipc::PVMessage;
 use crate::scan::{determine_format, open_compressed_control, ArArchive, TarArchive};
 use crate::{db, read_compressed};
 
-use super::{mtime, sha256sum, TarFormat};
+use super::{mtime, HashedReader, TarFormat};
 
 macro_rules! must_have {
     ($map:ident, $name:expr) => {{
@@ -601,9 +601,8 @@ fn collect_files<R: Read>(reader: R) -> Result<PackageContents> {
 
 /// Advanced deb package reader. Scans control and package files
 fn open_deb_advanced<'a, R: Read + 'a>(
-    reader: R,
+    reader: HashedReader<R>,
     stat: Metadata,
-    sha256: String,
     filename: &str,
     branch: (String, String),
 ) -> Result<PackageMeta> {
@@ -646,6 +645,7 @@ fn open_deb_advanced<'a, R: Read + 'a>(
     if metadata.is_none() || files.is_none() {
         Err(anyhow!("data archive not found or format unsupported"))
     } else {
+        let sha256 = deb.into_inner()?.get_hash()?;
         let metadata = metadata.unwrap();
         let mtime = mtime(&stat)?;
         Ok(PackageMeta {
@@ -663,13 +663,17 @@ fn open_deb_advanced<'a, R: Read + 'a>(
 /// Advanced version of scanning deb packages. With bells and whistles.
 pub(crate) fn scan_single_deb_advanced<P: AsRef<Path>>(path: P, root: P) -> Result<PackageMeta> {
     let stat = path.as_ref().metadata()?;
-    let mut f = File::open(path.as_ref())?;
-    let sha256 = sha256sum(&f)?;
-    f.seek(SeekFrom::Start(0))?;
+    let f = File::open(path.as_ref())?;
+    let f = unsafe { memmap2::Mmap::map(&f)? };
     let rel_filename = path.as_ref().strip_prefix(root.as_ref())?;
     let component = get_branch_name(rel_filename)?;
 
-    open_deb_advanced(f, stat, sha256, &rel_filename.to_string_lossy(), component)
+    open_deb_advanced(
+        HashedReader::new(&*f),
+        stat,
+        &rel_filename.to_string_lossy(),
+        component,
+    )
 }
 
 #[test]
@@ -679,6 +683,7 @@ fn test_deb_adv() {
         "./tests",
     )
     .unwrap();
+    assert_eq!(&content.sha256, "6a7dd466854f6c1f4a597f0c547acf1f90d8298a04f4a2ca31f96a7c9dca8bc3");
     println!("{:?}", content);
 }
 

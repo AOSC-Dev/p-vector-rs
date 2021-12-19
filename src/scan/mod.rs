@@ -27,6 +27,46 @@ macro_rules! read_compressed {
     }};
 }
 
+pub struct HashedReader<R: Read> {
+    inner: R,
+    hasher: Sha256,
+}
+
+impl<R: Read> HashedReader<R> {
+    /// Create a new HashedReader
+    pub fn new(reader: R) -> HashedReader<R> {
+        Self {
+            inner: reader,
+            hasher: Sha256::new(),
+        }
+    }
+
+    /// Consume the current reader and return the sha256 hash of the data
+    pub fn get_hash(mut self) -> std::io::Result<String> {
+        // first, drain the inner reader until it reaches EOF
+        let mut buffer = [0u8; 4096];
+        loop {
+            match self.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(_) => continue,
+                Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(hex_string(&self.hasher.finalize()))
+    }
+}
+
+impl<R: Read> Read for HashedReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let size = self.inner.read(buf)?;
+        self.hasher.update(&buf[..size]);
+
+        Ok(size)
+    }
+}
+
 pub(crate) fn mtime(stat: &Metadata) -> Result<u64> {
     Ok(stat.modified()?.duration_since(UNIX_EPOCH)?.as_secs())
 }
@@ -130,4 +170,31 @@ pub fn collect_all_packages<P: AsRef<Path>>(path: P) -> Result<Vec<DirEntry>> {
     }
 
     Ok(files)
+}
+
+#[test]
+fn test_hashed_reader() {
+    let test_data = &b"1234567890"[..];
+    let mut test_reader = HashedReader::new(test_data);
+    let read_hash = sha256sum(&mut test_reader).unwrap();
+    assert_eq!(read_hash, test_reader.get_hash().unwrap());
+    assert_eq!(
+        &read_hash,
+        "c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646"
+    );
+    // when reader is not read
+    let test_reader = HashedReader::new(test_data);
+    assert_eq!(
+        test_reader.get_hash().unwrap().as_str(),
+        "c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646"
+    );
+    // when reader is not fully read
+    let mut buffer = [0u8; 4];
+    let mut test_reader = HashedReader::new(test_data);
+    test_reader.read(&mut buffer).unwrap();
+    assert_eq!(buffer, &b"1234"[..]);
+    assert_eq!(
+        test_reader.get_hash().unwrap().as_str(),
+        "c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646"
+    );
 }
