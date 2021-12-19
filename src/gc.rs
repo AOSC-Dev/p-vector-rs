@@ -39,6 +39,8 @@ async fn clean_dist_files(to_remove: &[&String], mirror_root: &Path) {
 
 /// Execute garbage collection
 pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()> {
+    info!("Deleting duplicated and stale entries from the database ...");
+    sqlx::query!("DELETE FROM pv_package_duplicate USING pv_packages WHERE pv_package_duplicate.filename = pv_packages.filename").execute(pool).await?;
     let known_branches = list_existing_branches(pool).await?;
     let to_remove = known_branches
         .iter()
