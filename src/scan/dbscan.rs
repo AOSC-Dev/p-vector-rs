@@ -330,6 +330,21 @@ pub async fn save_packages_to_db(pool: &PgPool, packages: &[PackageMeta]) -> Res
     Ok(())
 }
 
+#[inline]
+fn split_so_name(name: &str) -> (Option<&str>, Option<&str>) {
+    let splitter = name.find(".so");
+    let so_name = splitter.and_then(|s| Some(&name[..(s + 3)]));
+    let so_version = splitter.and_then(|s| {
+        if s >= (name.len() - 3) {
+            None
+        } else {
+            Some(&name[(s + 3)..])
+        }
+    });
+
+    (so_name, so_version)
+}
+
 async fn save_package_to_db(
     pool: &mut Transaction<'_, Postgres>,
     package: &PackageMeta,
@@ -390,9 +405,7 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
     }
     // update so information
     for so in &contents.so_requires {
-        let mut splitter = so.splitn(2, ".so");
-        let so_name = splitter.next();
-        let so_version = splitter.next();
+        let (so_name, so_version) = split_so_name(so);
         sqlx::query!(
             "INSERT INTO pv_package_sodep VALUES ($1, $2, $3, 1, $4, $5)",
             meta.name,
@@ -405,9 +418,7 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
         .await?;
     }
     for so in &contents.so_provides {
-        let mut splitter = so.splitn(2, ".so");
-        let so_name = splitter.next();
-        let so_version = splitter.next();
+        let (so_name, so_version) = split_so_name(so);
         sqlx::query!(
             "INSERT INTO pv_package_sodep VALUES ($1, $2, $3, 0, $4, $5)",
             meta.name,
@@ -523,8 +534,7 @@ fn scan_elf<R: Read>(
         // not an ELF
         return Ok(());
     }
-    let mut elf_header = Vec::new();
-    elf_header.extend_from_slice(&[0, 0, 0, 0]);
+    let mut elf_header = vec![0u8; 4];
     entry.read_exact(&mut elf_header)?;
     if elf_header != ELF_MAGIC {
         // not an ELF due to invalid magic
@@ -537,10 +547,10 @@ fn scan_elf<R: Read>(
     elf_header.extend(content);
     let (soname, libraries) = parse_elf(&elf_header)?;
     for i in libraries {
-        requires.insert(format!("{}.so", i);
+        requires.insert(i.to_string());
     }
     if let Some(soname) = soname {
-        provides.insert(format!("{}.so", soname));
+        provides.insert(soname.to_string());
     }
 
     Ok(())
@@ -670,4 +680,12 @@ fn test_deb_adv() {
     )
     .unwrap();
     println!("{:?}", content);
+}
+
+#[test]
+fn so_name_splitter() {
+    let so = "libclang.so.1";
+    assert_eq!(split_so_name(so), (Some("libclang.so"), Some(".1")));
+    let so = "libclang.so";
+    assert_eq!(split_so_name(so), (Some("libclang.so"), None));
 }
