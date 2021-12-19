@@ -288,12 +288,14 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
         delete.len(),
         changed.len()
     );
+    if !needs_update.is_empty() {
+        info!("{} packages needs metadata refresh.", needs_update.len());
+        scan::update_unchanged_packages(pool, needs_update, &mirror_root_path).await?;
+    }
     if delete.is_empty() && changed.is_empty() {
         info!("Nothing to scan.");
         return Ok(());
     }
-    info!("{} packages needs metadata refresh.", needs_update.len());
-    scan::update_unchanged_packages(pool, needs_update).await?;
     info!("Starting scanner ...");
     let mirror_root = mirror_root_path.clone();
     let packages =

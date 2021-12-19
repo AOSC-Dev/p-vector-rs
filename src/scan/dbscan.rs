@@ -228,19 +228,24 @@ fn collect_changed_repos(packages: &[PackageMeta]) -> HashMap<String, Repository
 pub async fn update_unchanged_packages(
     pool: &PgPool,
     packages: SegQueue<(PathBuf, u64)>,
+    mirror_root: &Path,
 ) -> Result<()> {
     while let Some(package) = packages.pop() {
-        if let Some(path) = package.0.to_str() {
-            info!("Updating {} ...", path);
-            sqlx::query!(
-                "UPDATE pv_packages SET mtime = $1 WHERE filename = $2",
-                package.1 as i64,
-                path
-            )
-            .execute(pool)
-            .await?;
+        if let Ok(path) = package.0.strip_prefix(mirror_root) {
+            info!("Updating {} ...", path.display());
+            if let Some(path) = path.to_str() {
+                sqlx::query!(
+                    "UPDATE pv_packages SET mtime = $1 WHERE filename = $2",
+                    package.1 as i64,
+                    path
+                )
+                .execute(pool)
+                .await?;
+            } else {
+                warn!("{} contains invalid characters!", path.display());
+            }
         } else {
-            warn!("{} contains invalid characters!", package.0.display());
+            warn!("{} is not in the package pool directory!", package.0.display());
         }
     }
 
