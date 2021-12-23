@@ -249,7 +249,7 @@ coalesce(dp.section || '/', '') || dp.package), ',')) || chr(10) as p
 FROM pv_packages dp
 INNER JOIN pv_package_files df USING (package, version, repo)
 INNER JOIN pv_repos pr ON pr.name=dp.repo
-WHERE pr.path=$1 AND df.ftype=0
+WHERE pr.path=$1 AND df.ftype<53
 AND pr.architecture IN ($2, 'all') AND dp.debtime IS NOT NULL
 GROUP BY df.path, df.name"#,
         component,
