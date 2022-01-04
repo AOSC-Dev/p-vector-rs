@@ -45,6 +45,9 @@ futures = "0.3"
 async-compression = { version = "0.3", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
 
+[patch.crates-io]
+sailfish = { git = "https://github.com/liushuyu/sailfish", rev = "9342e5a18563fe53bcf4a8502b50709be1339baf" }
+
 [target.'cfg(unix)'.dependencies]
 nix = "0.23"
 
