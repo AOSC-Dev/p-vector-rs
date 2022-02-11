@@ -15,6 +15,9 @@ use tokio::{
 };
 use walkdir::DirEntry;
 
+#[cfg(feature = "systemd")]
+use sd_notify::NotifyState;
+
 use crate::scan::collect_removed_packages;
 
 mod cli;
@@ -74,6 +77,11 @@ async fn main() -> Result<()> {
     let pool = db::connect_database(&config.config.db_pgconn).await?;
     info!("Running any pending migrations...");
     db::run_migrate(&pool).await?;
+
+    #[cfg(feature = "systemd")]
+    {
+        sd_notify::notify(true, &[NotifyState::Ready]).ok();
+    }
 
     match args.command {
         cli::PVectorCommand::Scan(_) => scan_action(config, &pool).await?,
@@ -295,6 +303,12 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     if delete.is_empty() && changed.is_empty() {
         info!("Nothing to scan.");
         return Ok(());
+    }
+    #[cfg(feature = "systemd")]
+    {
+        let changed_number = delete.len() + changed.len();
+        let message = format!("Processing {} packages ...", changed_number);
+        sd_notify::notify(true, &[NotifyState::Status(&message)]).ok();
     }
     info!("Starting scanner ...");
     let mirror_root = mirror_root_path.clone();

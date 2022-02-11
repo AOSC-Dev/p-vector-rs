@@ -48,6 +48,11 @@ reqwest = "0.11"
 
 [target.'cfg(unix)'.dependencies]
 nix = "0.23"
+sd-notify = { version = "0.4", optional = true }
+
+[features]
+default = ["systemd"]
+systemd = ["sd-notify"]
 
 [profile.release]
 lto = true
