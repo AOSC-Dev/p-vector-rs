@@ -245,7 +245,10 @@ pub async fn update_unchanged_packages(
                 warn!("{} contains invalid characters!", path.display());
             }
         } else {
-            warn!("{} is not in the package pool directory!", package.0.display());
+            warn!(
+                "{} is not in the package pool directory!",
+                package.0.display()
+            );
         }
     }
 
@@ -688,7 +691,10 @@ fn test_deb_adv() {
         "./tests",
     )
     .unwrap();
-    assert_eq!(&content.sha256, "6a7dd466854f6c1f4a597f0c547acf1f90d8298a04f4a2ca31f96a7c9dca8bc3");
+    assert_eq!(
+        &content.sha256,
+        "6a7dd466854f6c1f4a597f0c547acf1f90d8298a04f4a2ca31f96a7c9dca8bc3"
+    );
     println!("{:?}", content);
 }
 

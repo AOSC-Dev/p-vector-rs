@@ -18,7 +18,8 @@ flate2 = "1.0"
 anyhow = "1.0"
 sha2 = "0.10"
 rayon = "1.5"
-sailfish = "0.3"
+#sailfish = "0.3"
+sailfish = { git = "https://github.com/liushuyu/sailfish", rev = "9342e5a18563fe53bcf4a8502b50709be1339baf" }
 faster-hex = "0.6"
 crossbeam-queue = "0.3"
 tempfile = "3.2"
@@ -44,9 +45,6 @@ sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "macros", "pos
 futures = "0.3"
 async-compression = { version = "0.3", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
-
-[patch.crates-io]
-sailfish = { git = "https://github.com/liushuyu/sailfish", rev = "9342e5a18563fe53bcf4a8502b50709be1339baf" }
 
 [target.'cfg(unix)'.dependencies]
 nix = "0.23"

@@ -15,10 +15,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use sailfish::TemplateOnce;
 use serde_json::Value;
 use sqlx::PgPool;
-use time::{
-    format_description::FormatItem,
-    macros::{format_description, offset},
-};
+use time::{format_description::well_known::Rfc2822, macros::offset};
 use tokio::fs::{create_dir_all, metadata, File};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::task::spawn_blocking;
@@ -26,9 +23,6 @@ use tokio::task::spawn_blocking;
 use crate::config::ReleaseConfig;
 use crate::scan::{mtime, sha256sum};
 use crate::sign::{load_certificate, sign_message};
-
-/// Debian 822 date: "%a, %d %b %Y %H:%M:%S %z"
-const DEB822_DATE: &[FormatItem] = format_description!("[weekday repr:short], [day] [month repr:short] [year] [hour repr:24]:[minute]:[second] [offset_hour sign:mandatory][offset_minute]");
 
 #[derive(Clone, Debug)]
 struct PackageTemplate {
@@ -162,8 +156,8 @@ fn create_release_file(
         codename: config.codename.clone(),
         suite: m.branch.clone(),
         description,
-        date: system_time.format(&DEB822_DATE)?,
-        valid_until: projected_timestamp.format(&DEB822_DATE)?,
+        date: system_time.format(&Rfc2822)?,
+        valid_until: projected_timestamp.format(&Rfc2822)?,
         architectures: m.arch.as_ref().unwrap().to_vec(),
         components: m.comp.as_ref().unwrap().to_vec(),
         files: release_files.unwrap(),
@@ -411,7 +405,7 @@ async fn need_refresh(inrel_path: &Path) -> Result<bool> {
     f.read_to_end(&mut content).await?;
     let captured = parse_valid_date(&content).map_err(|e| anyhow!(e.to_string()))?;
     let captured_str = std::str::from_utf8(captured.1)?;
-    let parsed = time::OffsetDateTime::parse(captured_str, &DEB822_DATE).map_err(|e| anyhow!(e))?;
+    let parsed = time::OffsetDateTime::parse(captured_str, &Rfc2822).map_err(|e| anyhow!(e))?;
     let parsed_timestamp = parsed.to_offset(offset!(+0)).unix_timestamp();
     let system_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let projected_timestamp = system_time + (24 * 3600);
@@ -450,7 +444,7 @@ fn test_date_parsing() {
     use time::macros::datetime;
     let test_date = "Wed, 14 Jul 2021 10:54:24 +0000";
     let expected = datetime!(2021 - 07 - 14 10:54:24 +0000);
-    let parsed = time::OffsetDateTime::parse(test_date, &DEB822_DATE).unwrap();
+    let parsed = time::OffsetDateTime::parse(test_date, &Rfc2822).unwrap();
     assert_eq!(parsed, expected);
 }
 
