@@ -18,8 +18,7 @@ flate2 = "1.0"
 anyhow = "1.0"
 sha2 = "0.10"
 rayon = "1.5"
-#sailfish = "0.3"
-sailfish = { git = "https://github.com/liushuyu/sailfish", rev = "9342e5a18563fe53bcf4a8502b50709be1339baf" }
+sailfish = "0.3"
 faster-hex = "0.6"
 crossbeam-queue = "0.3"
 tempfile = "3.2"
@@ -33,12 +32,12 @@ nom = "^7"
 toml = "0.5"
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
-goblin = "0.4"
+goblin = "0.5"
 bincode = "^1"
 zmq = "0.9"
 # cli
 argh = "0.1"
-dialoguer = "0.9"
+dialoguer = "0.10"
 # async and database
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
 sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
