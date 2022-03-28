@@ -3,6 +3,7 @@ name = "p-vector"
 version = "0.2.7-alpha.0"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 edition = "2018"
+resolver = "2"
 
 [dependencies]
 # logging facilities
