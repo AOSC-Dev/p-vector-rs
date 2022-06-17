@@ -41,7 +41,7 @@ argh = "0.1"
 dialoguer = "0.10"
 # async and database
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
-sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
+sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
 futures = "0.3"
 async-compression = { version = "0.3", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
