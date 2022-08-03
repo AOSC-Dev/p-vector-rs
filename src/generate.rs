@@ -427,7 +427,7 @@ pub async fn need_regenerate(pool: &PgPool, mirror_root: &Path) -> Result<Vec<St
     let dist_path = mirror_root.join("dists");
     let mut needs_regenerate = Vec::new();
     let records = sqlx::query!(
-        "SELECT branch, coalesce(extract(epoch FROM max(mtime)), 0) AS modified FROM pv_repos GROUP BY branch"
+        "SELECT branch, coalesce(extract(epoch FROM max(mtime)), 0)::bigint AS modified FROM pv_repos GROUP BY branch"
     )
     .fetch_all(pool)
     .await?;
