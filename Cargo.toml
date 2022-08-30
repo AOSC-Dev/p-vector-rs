@@ -49,7 +49,7 @@ async-compression = { version = "0.3", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
 
 [target.'cfg(unix)'.dependencies]
-nix = "0.24"
+nix = "0.25"
 sd-notify = { version = "0.4", optional = true }
 
 [features]
