@@ -96,7 +96,7 @@ fn scan_single_release_file(branch_root: &Path, path: &Path) -> Result<(String, 
 }
 
 fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> {
-    let walk = walkdir::WalkDir::new(&branch_root).min_depth(2).into_iter();
+    let walk = walkdir::WalkDir::new(branch_root).min_depth(2).into_iter();
     let mut files_to_scan = Vec::new();
     for entry in walk {
         let entry = entry?;
@@ -264,7 +264,7 @@ GROUP BY df.path, df.name"#,
 
     let content = lines
         .iter()
-        .flat_map(|line| line.p.as_ref().and_then(|s| Some(s.to_string())))
+        .flat_map(|line| line.p.as_ref().map(|s| s.to_string()))
         .collect::<String>();
     let dist_path = component_root.join(format!("Contents-{}.gz", arch));
     let dist_path_un = component_root.join(format!("Contents-{}", arch));

@@ -148,7 +148,7 @@ async fn gc_action(config: &config::Config, pool: &PgPool) -> Result<()> {
 async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     let mirror_root = Path::new(&config.config.path);
     let pool_path = Path::new(&config.config.path).join("pool");
-    let topics = spawn_blocking(move || scan::discover_topics_components(&pool_path)).await??;
+    let topics = spawn_blocking(move || scan::discover_topics_components(pool_path)).await??;
     info!("{} topics discovered.", topics.len());
     let needs_regenerate = generate::need_regenerate(pool, mirror_root).await?;
     let mut tasks = Vec::new();
@@ -279,9 +279,9 @@ async fn scan_action(config: config::Config, pool: &PgPool) -> Result<()> {
     let pool_path_clone = pool_path.clone();
     let mirror_root = config.config.path.clone();
     let mirror_root_path = Path::new(&mirror_root).to_owned();
-    let topics = spawn_blocking(move || scan::discover_topics_components(&pool_path)).await??;
+    let topics = spawn_blocking(move || scan::discover_topics_components(pool_path)).await??;
     info!("{} topics discovered.", topics.len());
-    let files = spawn_blocking(move || scan::collect_all_packages(&pool_path_clone)).await??;
+    let files = spawn_blocking(move || scan::collect_all_packages(pool_path_clone)).await??;
     info!("{} deb files discovered.", files.len());
     info!("Collecting packages information from database ...");
     let db_packages = list_all_packages(pool, &topics).await?;

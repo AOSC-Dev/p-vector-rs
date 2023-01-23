@@ -341,7 +341,7 @@ pub async fn save_packages_to_db(pool: &PgPool, packages: &[PackageMeta]) -> Res
 #[inline]
 fn split_so_name(name: &str) -> (Option<&str>, Option<&str>) {
     let splitter = name.find(".so");
-    let so_name = splitter.and_then(|s| Some(&name[..(s + 3)]));
+    let so_name = splitter.map(|s| &name[..(s + 3)]);
     let so_version = splitter.and_then(|s| {
         if s >= (name.len() - 3) {
             None
