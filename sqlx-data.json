@@ -500,18 +500,6 @@
     },
     "query": "INSERT INTO pv_package_sodep VALUES ($1, $2, $3, 1, $4, $5)"
   },
-  "ad96af1d197ad7dd9d1b7379ccfc930db84713ee18059f82bb253342ea7d61c1": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "DELETE FROM pv_packages WHERE filename = $1"
-  },
   "ae2cc8545e9573723d82b81257d8b3cb9d2832d0e125c8abc63dfcb44016737e": {
     "describe": {
       "columns": [
@@ -609,6 +597,26 @@
     },
     "query": "SELECT comparable_dpkgver($1) > _vercomp AS newer, version, filename FROM pv_packages \nWHERE package=$2 AND repo=$3 AND _vercomp=\n(SELECT max(\"_vercomp\") FROM pv_packages WHERE package=$2 AND repo=$3 GROUP BY package)"
   },
+  "dc68a6e45d42d0507ec99f0261df65ade57ce037424b85f3fd5187679c89d447": {
+    "describe": {
+      "columns": [
+        {
+          "name": "repo",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM pv_packages WHERE filename = $1 RETURNING repo"
+  },
   "dc7b3f0b1089cd6d4fce903268ec555966e7dd38ae96b47a2a990c3ad24bea4b": {
     "describe": {
       "columns": [],
@@ -648,5 +656,17 @@
       }
     },
     "query": "CREATE EXTENSION IF NOT EXISTS sqlite_fdw"
+  },
+  "fc181f0d3bf1965fc11538f0eeda015fb85a9838d88c32956edba1e2d7ab7e9b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE pv_repos SET mtime=now() WHERE name = $1"
   }
 }
