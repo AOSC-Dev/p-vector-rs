@@ -65,9 +65,9 @@ pub fn lint_config(config: &Config) {
 
 pub fn parse_config<P: AsRef<Path>>(path: P) -> Result<Config> {
     let mut f = File::open(path)?;
-    let mut content = Vec::new();
+    let mut content = String::new();
     content.reserve(1024);
-    f.read_to_end(&mut content)?;
+    f.read_to_string(&mut content)?;
 
-    Ok(toml::from_slice(&content)?)
+    Ok(toml::from_str(&content)?)
 }
