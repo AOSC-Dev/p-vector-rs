@@ -1,6 +1,6 @@
 [package]
 name = "p-vector"
-version = "0.3.3"
+version = "0.3.4-alpha.0"
 license = "LGPL-3.0-or-later"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 edition = "2018"
