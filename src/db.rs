@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::Path;
 
 use anyhow::Result;
@@ -117,9 +118,19 @@ pub async fn get_removed_packages_message<P: AsRef<Path>>(
 
 pub async fn remove_packages_by_path<P: AsRef<Path>>(pool: &PgPool, path: &[P]) -> Result<()> {
     let mut tx = pool.begin().await?;
+    let mut changed_repos = HashSet::new();
     for path in path {
         let path = path.as_ref().to_string_lossy();
-        sqlx::query!("DELETE FROM pv_packages WHERE filename = $1", path.as_ref())
+        let p = sqlx::query!(
+            "DELETE FROM pv_packages WHERE filename = $1 RETURNING repo",
+            path.as_ref()
+        )
+        .fetch_one(&mut tx)
+        .await?;
+        changed_repos.insert(p.repo);
+    }
+    for b in changed_repos {
+        sqlx::query!("UPDATE pv_repos SET mtime=now() WHERE name = $1", b)
             .execute(&mut tx)
             .await?;
     }
