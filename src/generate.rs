@@ -241,6 +241,12 @@ pub async fn render_releases(
     Ok(())
 }
 
+fn content_line_remove_prefix(s: &str) -> &str {
+    let s = s.strip_prefix("/").unwrap_or(s);
+
+    s.strip_prefix("./").unwrap_or(s)
+}
+
 async fn render_contents_in_component_arch(
     pool: &PgPool,
     component: &str,
@@ -264,7 +270,7 @@ GROUP BY df.path, df.name"#,
 
     let content = lines
         .iter()
-        .flat_map(|line| line.p.as_ref().map(|s| s.to_string()))
+        .flat_map(|line| line.p.as_ref().map(|x| content_line_remove_prefix(x)))
         .collect::<String>();
     let dist_path = component_root.join(format!("Contents-{}.gz", arch));
     let dist_path_un = component_root.join(format!("Contents-{}", arch));
