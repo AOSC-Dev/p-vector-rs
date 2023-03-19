@@ -19,11 +19,11 @@ flate2 = "1.0"
 # utilities
 anyhow = "1.0"
 sha2 = "0.10"
-rayon = "1.6"
+rayon = "1.7"
 sailfish = "0.6"
 faster-hex = "0.6"
 crossbeam-queue = "0.3"
-tempfile = "3.3"
+tempfile = "3.4"
 fs_extra = "^1"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 secrecy = "0.8"

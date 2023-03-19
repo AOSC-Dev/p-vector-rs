@@ -353,6 +353,12 @@ fn split_so_name(name: &str) -> (Option<&str>, Option<&str>) {
     (so_name, so_version)
 }
 
+#[inline]
+fn normalize_path(path: &str) -> &str {
+    path.strip_prefix("./")
+        .unwrap_or_else(|| path.strip_prefix("/").unwrap_or(path))
+}
+
 async fn save_package_to_db(
     pool: &mut Transaction<'_, Postgres>,
     package: &PackageMeta,
@@ -440,7 +446,11 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
     }
     // update files information
     for f in &contents.files {
-        let path = f.path.parent().and_then(|p| p.to_str());
+        let path = f
+            .path
+            .parent()
+            .and_then(|p| p.to_str())
+            .map(|p| normalize_path(p));
         let filename = f.path.file_name().and_then(|p| p.to_str());
         let uname = f.uname.as_ref().and_then(|p| std::str::from_utf8(p).ok());
         let gname = f.gname.as_ref().and_then(|p| std::str::from_utf8(p).ok());
