@@ -23,12 +23,12 @@ rayon = "1.7"
 sailfish = "0.6"
 faster-hex = "0.6"
 crossbeam-queue = "0.3"
-tempfile = "3.4"
+tempfile = "3.5"
 fs_extra = "^1"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 secrecy = "0.8"
-sequoia-openpgp = { version = "1.13", features = ["crypto-nettle"], default-features = false }
-memmap2 = "0.5"
+sequoia-openpgp = { version = "1.15", features = ["crypto-nettle"], default-features = false }
+memmap2 = "0.6"
 sequoia-ipc = "0.30"
 # parser implementations
 nom = "^7"
