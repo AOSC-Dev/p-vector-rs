@@ -320,7 +320,7 @@ ON CONFLICT (name) DO UPDATE SET mtime=now()",
             repo.component,
             repo.architecture
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
     }
     tx.commit().await?;
@@ -376,7 +376,7 @@ ON CONFLICT (package, version, repo)
 DO UPDATE SET filename=$5,size=$6,sha256=$7,mtime=$8,debtime=$9,section=$10,installed_size=$11,maintainer=$12,description=$13
 RETURNING (xmax = 0) AS new"#,
         meta.name, meta.version, repo, meta.arch, package.filename, package.size as i64, package.sha256, package.mtime as i32, meta.debtime as i32, meta.section, meta.inst_size.parse::<i64>().unwrap_or(0), meta.maintainer, meta.desc
-    ).fetch_one(&mut *pool).await?;
+    ).fetch_one(&mut **pool).await?;
     if !result.new.unwrap_or(false) {
         warn!("{} is a duplicate!", package.filename);
         // remove duplicated data and append this package to duplicate list
@@ -388,12 +388,12 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
             meta.name,
             meta.version,
             repo
-        ).execute(&mut *pool).await?;
+        ).execute(&mut **pool).await?;
         sqlx::query!(
             "INSERT INTO pv_package_duplicate SELECT * FROM pv_packages WHERE filename=$1",
             package.filename
         )
-        .execute(&mut *pool)
+        .execute(&mut **pool)
         .await?;
     }
     // update dependencies information
@@ -412,7 +412,7 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
                     dep,
                     value
                 )
-                .execute(&mut *pool)
+                .execute(&mut **pool)
                 .await?;
             }
         }
@@ -428,7 +428,7 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
             so_name,
             so_version
         )
-        .execute(&mut *pool)
+        .execute(&mut **pool)
         .await?;
     }
     for so in &contents.so_provides {
@@ -441,7 +441,7 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
             so_name,
             so_version
         )
-        .execute(&mut *pool)
+        .execute(&mut **pool)
         .await?;
     }
     // update files information
@@ -457,7 +457,7 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
         sqlx::query!(
             r#"INSERT INTO pv_package_files VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"#,
             meta.name, meta.version, repo, path, filename, f.size as i64, f.type_ as i16, f.perms as i32, f.uid as i64, f.gid as i64, uname, gname
-        ).execute(&mut *pool).await?;
+        ).execute(&mut **pool).await?;
     }
 
     Ok(())

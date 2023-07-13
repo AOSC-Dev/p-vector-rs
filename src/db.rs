@@ -37,7 +37,7 @@ pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
         "SELECT max(atime) + INTERVAL '{} hours' >= now() AS refresh FROM pv_package_issues",
         delay
     );
-    let refresh: Option<bool> = sqlx::query_scalar(&stmt).fetch_one(&mut tx).await?;
+    let refresh: Option<bool> = sqlx::query_scalar(&stmt).fetch_one(&mut *tx).await?;
     if refresh.unwrap_or(false) {
         info!("Analysis skipped.");
         return Ok(());
@@ -60,7 +60,7 @@ pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
 pub async fn reset_database(pool: &PgPool) -> Result<()> {
     let mut tx = pool.begin().await?;
     sqlx::query!("TRUNCATE TABLE _sqlx_migrations")
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
     info!("Resetting p-vector tables ...");
     tx.execute(PV_RS_SQL_SCRIPT_PV).await?;
@@ -125,13 +125,13 @@ pub async fn remove_packages_by_path<P: AsRef<Path>>(pool: &PgPool, path: &[P]) 
             "DELETE FROM pv_packages WHERE filename = $1 RETURNING repo",
             path.as_ref()
         )
-        .fetch_one(&mut tx)
+        .fetch_one(&mut *tx)
         .await?;
         changed_repos.insert(p.repo);
     }
     for b in changed_repos {
         sqlx::query!("UPDATE pv_repos SET mtime=now() WHERE name = $1", b)
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await?;
     }
     tx.commit().await?;
