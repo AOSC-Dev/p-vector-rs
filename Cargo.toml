@@ -20,8 +20,8 @@ flate2 = "1.0"
 anyhow = "1.0"
 sha2 = "0.10"
 rayon = "1.7"
-sailfish = "0.6"
-faster-hex = "0.6"
+sailfish = "0.7"
+faster-hex = "0.8"
 crossbeam-queue = "0.3"
 tempfile = "3.6"
 fs_extra = "^1"
@@ -35,7 +35,7 @@ nom = "^7"
 toml = "0.7"
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
-goblin = "0.6"
+goblin = "0.7"
 bincode = "^1"
 zmq = "0.10"
 # cli
@@ -43,7 +43,7 @@ argh = "0.1"
 dialoguer = "0.10"
 # async and database
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
-sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json", "offline"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
 futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
