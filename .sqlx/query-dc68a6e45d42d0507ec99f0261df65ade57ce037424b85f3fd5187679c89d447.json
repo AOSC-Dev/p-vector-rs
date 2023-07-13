@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM pv_packages WHERE filename = $1 RETURNING repo",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "repo",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dc68a6e45d42d0507ec99f0261df65ade57ce037424b85f3fd5187679c89d447"
+}

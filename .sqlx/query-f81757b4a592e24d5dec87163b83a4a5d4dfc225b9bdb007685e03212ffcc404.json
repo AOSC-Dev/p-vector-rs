@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "CREATE EXTENSION IF NOT EXISTS sqlite_fdw",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f81757b4a592e24d5dec87163b83a4a5d4dfc225b9bdb007685e03212ffcc404"
+}

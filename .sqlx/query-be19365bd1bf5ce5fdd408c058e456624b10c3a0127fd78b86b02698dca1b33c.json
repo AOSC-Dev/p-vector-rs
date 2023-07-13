@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH d1 AS (DELETE FROM pv_package_sodep WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)\n, d2 AS (DELETE FROM pv_package_files WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)\n, d3 AS (DELETE FROM pv_package_dependencies WHERE package=$1 AND version=$2 AND repo=$3 RETURNING package)\nDELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "be19365bd1bf5ce5fdd408c058e456624b10c3a0127fd78b86b02698dca1b33c"
+}

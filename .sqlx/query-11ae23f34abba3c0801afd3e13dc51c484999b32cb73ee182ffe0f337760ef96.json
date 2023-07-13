@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "TRUNCATE TABLE _sqlx_migrations",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "11ae23f34abba3c0801afd3e13dc51c484999b32cb73ee182ffe0f337760ef96"
+}

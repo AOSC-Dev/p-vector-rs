@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT branch, array_agg(DISTINCT architecture) AS arch, array_agg(DISTINCT component) AS comp FROM pv_repos GROUP BY branch",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "branch",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "arch",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 2,
+        "name": "comp",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "61205a1b290fdc2ae1674599d34bd08a5eda1299c3dffcb98048186ddf75b391"
+}

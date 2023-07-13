@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT comparable_dpkgver($1) > _vercomp AS newer, version, filename FROM pv_packages \nWHERE package=$2 AND repo=$3 AND _vercomp=\n(SELECT max(\"_vercomp\") FROM pv_packages WHERE package=$2 AND repo=$3 GROUP BY package)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "newer",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "filename",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "d79207c702e2c9bc381315c82dc64fe88d990a76b0712d21a46e105cf51b4293"
+}

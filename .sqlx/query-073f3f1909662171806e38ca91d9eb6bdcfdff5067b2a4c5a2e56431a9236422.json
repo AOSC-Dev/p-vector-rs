@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT architecture FROM pv_repos WHERE path=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "architecture",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "073f3f1909662171806e38ca91d9eb6bdcfdff5067b2a4c5a2e56431a9236422"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO pv_package_duplicate SELECT * FROM pv_packages WHERE filename=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "168780a2e264b9db2df51df0f013fef794314aa08fe9b3d51bddfde94e3f1614"
+}

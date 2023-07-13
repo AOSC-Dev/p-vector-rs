@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.package, p.version, p.repo, p.architecture, p.filename, p.size, p.mtime, p.sha256\nFROM pv_packages p INNER JOIN pv_repos r ON p.repo=r.name WHERE r.path=$1\nUNION ALL\nSELECT p.package, p.version, p.repo, p.architecture, p.filename, p.size, p.mtime, p.sha256\nFROM pv_package_duplicate p INNER JOIN pv_repos r ON p.repo=r.name WHERE r.path=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "package",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "repo",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "architecture",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "mtime",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "sha256",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "2051c45ee7ed568539a63718c6d972a0a21a011e511474fcd82c50744ace65ab"
+}

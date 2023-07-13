@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DROP SERVER IF EXISTS sqlite_server CASCADE",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "49c275e9b638725d0832e6f4910ed6751f36c57c3d512a9c6e2afe9370045f29"
+}

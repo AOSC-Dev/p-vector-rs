@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pv_repos SET mtime=now() WHERE name = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fc181f0d3bf1965fc11538f0eeda015fb85a9838d88c32956edba1e2d7ab7e9b"
+}
