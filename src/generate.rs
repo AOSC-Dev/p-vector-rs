@@ -85,12 +85,11 @@ fn parse_valid_date(input: &[u8]) -> IResult<&[u8], &[u8]> {
 fn scan_single_release_file(branch_root: &Path, path: &Path) -> Result<(String, u64, String)> {
     use std::fs::File as StdFile;
     use std::io::Seek;
-    use std::io::SeekFrom;
 
     let mut f = StdFile::open(path)?;
     let sha256 = sha256sum(&f)?;
     let filename = path.strip_prefix(branch_root)?.to_string_lossy();
-    let length = f.seek(SeekFrom::Current(0))?;
+    let length = f.stream_position()?;
 
     Ok((filename.to_string(), length, sha256))
 }
@@ -126,7 +125,6 @@ fn create_release_file(
     ttl: u64,
     cert: &Option<(sequoia_openpgp::Cert, bool)>,
 ) -> Result<()> {
-    use std::convert::TryInto;
     use std::fs::File as StdFile;
 
     info!("Generating InRelease files for {}", m.branch);

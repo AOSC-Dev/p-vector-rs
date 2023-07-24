@@ -126,7 +126,6 @@ async fn sync_action(config: &config::Config, pool: &PgPool) -> Result<()> {
 }
 
 async fn analysis_action(pool: &PgPool, delay: isize) -> Result<()> {
-    use std::convert::TryInto;
     if delay < 0 {
         info!("Analysis disabled.");
         return Ok(());
@@ -226,7 +225,6 @@ fn ask_for_key_info() -> Result<String> {
 
 async fn generate_key(config: &str) -> Result<()> {
     use secrecy::ExposeSecret;
-    use std::convert::TryInto;
     use time::OffsetDateTime;
     use tokio::fs::{create_dir_all, File};
     use tokio::io::AsyncWriteExt;
