@@ -3,6 +3,8 @@ name = "p-vector"
 version = "0.3.5"
 license = "LGPL-3.0-or-later"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
+description = "A database-backed APT archive manager"
+repository = "https://github.com/AOSC-Dev/p-vector-rs"
 edition = "2021"
 resolver = "2"
 
