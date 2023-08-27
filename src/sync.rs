@@ -12,12 +12,11 @@ use tokio::{fs::File, io::AsyncWriteExt, task::spawn_blocking};
 
 use crate::db::load_fdw_ext;
 
-const UPSTREAM_URL: &str = "https://packages.aosc.io/data/";
+pub const UPSTREAM_URL: &str = "https://packages.aosc.io/data/";
 const SYNC_DATABASES: &[&str] = &["abbs.db"];
 const PV_SYNC_SQL_SCRIPT: &str = include_str!("../sql/pvsync.sql");
 
-async fn download_db(file: &mut File, component: &str, etag: &str) -> Result<Vec<u8>> {
-    let url = format!("{}{}", UPSTREAM_URL, component);
+async fn download_db(file: &mut File, url: &str, etag: &str) -> Result<Vec<u8>> {
     let client = Client::new();
     let mut resp = client.get(url).header("If-None-Match", etag).send().await?;
     resp.error_for_status_ref()?;
@@ -64,7 +63,7 @@ fn change_permissions(f: &mut File) -> Result<()> {
     Ok(())
 }
 
-pub async fn sync_db_updates(pool: &PgPool) -> Result<()> {
+pub async fn sync_db_updates(pool: &PgPool, sync_url: &str) -> Result<()> {
     info!("Synchronizing databases ...");
     load_fdw_ext(pool).await?;
     for db in SYNC_DATABASES {
@@ -86,7 +85,7 @@ pub async fn sync_db_updates(pool: &PgPool) -> Result<()> {
         .await??;
         let temp_path = temp.into_temp_path();
         let mut temp_file = File::create(&temp_path).await?;
-        let new_etag = download_db(&mut temp_file, &format!("{}.gz", db), &etag).await?;
+        let new_etag = download_db(&mut temp_file, &format!("{}/{}.gz", sync_url, db), &etag).await?;
         let new_etag = std::str::from_utf8(&new_etag)?;
         if new_etag == etag {
             info!("{} update to date.", db);

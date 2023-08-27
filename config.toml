@@ -24,8 +24,11 @@ certificate = "/etc/p-vector/sign.key"
 # Delay between each QA (analyze) run (in hours)
 # set this value to 0 to run QA each time; set to -1 to disable QA function altogether
 qa_interval = 4
-# Enable abbs data sync (AOSC-specific, if you are running a private repository, you should disable this)
-abbs_sync = true
+# Enable abbs data sync. This is AOSC upstream specific.
+# If you are running a private repository you don't need this unless you want to host a web package listing
+abbs_sync = false
+# Sync source - defaulting to "https://packages.aosc.io/data/" if not specified
+abbs_sync_url = "https://packages.aosc.io/data/"
 
 [[branch]]
 # Branch name

@@ -116,7 +116,11 @@ async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
 
 async fn sync_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     if config.config.abbs_sync {
-        sync::sync_db_updates(pool).await?;
+        let url = match &config.config.abbs_sync_url {
+            Some(url) => url.as_str(),
+            None => sync::UPSTREAM_URL,
+        };
+        sync::sync_db_updates(pool, url).await?;
         info!("Sync finished.");
         Ok(())
     } else {
