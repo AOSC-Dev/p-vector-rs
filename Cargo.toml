@@ -13,28 +13,28 @@ resolver = "2"
 log = "0.4"
 env_logger = "0.10"
 # scanning facilities
-walkdir = "2.3"
+walkdir = "^2"
 ar = "0.9"
 tar = "0.4"
 xz2 = "0.1"
-flate2 = "1.0"
+flate2 = "^1"
 # utilities
-anyhow = "1.0"
+anyhow = "^1"
 sha2 = "0.10"
-rayon = "1.7"
-sailfish = "0.7"
+rayon = "^1"
+sailfish = "0.8"
 faster-hex = "0.8"
 crossbeam-queue = "0.3"
-tempfile = "3.7"
+tempfile = "^3"
 fs_extra = "^1"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 secrecy = "0.8"
-sequoia-openpgp = { version = "1.16", features = ["crypto-nettle"], default-features = false }
-memmap2 = "0.7"
+sequoia-openpgp = { version = "^1", features = ["crypto-nettle"], default-features = false }
+memmap2 = "0.9"
 sequoia-ipc = "0.30"
 # parser implementations
 nom = "^7"
-toml = "0.7"
+toml = "0.8"
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
 goblin = "0.7"
@@ -42,7 +42,7 @@ bincode = "^1"
 zmq = "0.10"
 # cli
 argh = "0.1"
-dialoguer = "0.10"
+dialoguer = "0.11"
 # async and database
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
 sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
@@ -51,7 +51,7 @@ async-compression = { version = "0.4", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.11"
 
 [target.'cfg(unix)'.dependencies]
-nix = "0.26"
+nix = { version = "0.27", features = ["fs"] }
 sd-notify = { version = "0.4", optional = true }
 
 [features]
