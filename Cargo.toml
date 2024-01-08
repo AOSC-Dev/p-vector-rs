@@ -23,7 +23,7 @@ anyhow = "^1"
 sha2 = "0.10"
 rayon = "^1"
 sailfish = "0.8"
-faster-hex = "0.8"
+faster-hex = "0.9"
 crossbeam-queue = "0.3"
 tempfile = "^3"
 fs_extra = "^1"
@@ -31,13 +31,13 @@ time = { version = "0.3", default-features = false, features = ["serde-human-rea
 secrecy = "0.8"
 sequoia-openpgp = { version = "^1", features = ["crypto-nettle"], default-features = false }
 memmap2 = "0.9"
-sequoia-ipc = "0.30"
+sequoia-ipc = "0.31"
 # parser implementations
 nom = "^7"
 toml = "0.8"
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
-goblin = "0.7"
+goblin = "0.8"
 bincode = "^1"
 zmq = "0.10"
 # cli
