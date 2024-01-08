@@ -82,8 +82,7 @@ fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
     for entry in tar.entries()? {
         let mut entry = entry?;
         if entry.path_bytes().as_ref() == &b"./control"[..] {
-            let mut buf = Vec::new();
-            buf.reserve(1024);
+            let mut buf = Vec::with_capacity(1024);
             entry.read_to_end(&mut buf)?;
             return Ok(buf);
         }
@@ -160,8 +159,7 @@ pub fn discover_topics_components<P: AsRef<Path>>(path: P) -> Result<Vec<PathBuf
 
 /// Walk through all the packages in a repository (no scanning)
 pub fn collect_all_packages<P: AsRef<Path>>(path: P) -> Result<Vec<DirEntry>> {
-    let mut files = Vec::new();
-    files.reserve(1000);
+    let mut files = Vec::with_capacity(1000);
     for entry in WalkDir::new(path.as_ref()) {
         let entry = entry?;
         if is_deb(&entry) {

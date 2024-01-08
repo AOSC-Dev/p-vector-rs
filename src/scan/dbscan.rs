@@ -138,8 +138,7 @@ fn sha256sum_validate<P: AsRef<Path>>(file: P, expected: &str) -> Result<bool> {
 }
 
 pub fn collect_removed_packages(removed: SegQueue<PathBuf>, mirror_root: &Path) -> Vec<PathBuf> {
-    let mut removed_packages = Vec::new();
-    removed_packages.reserve(removed.len());
+    let mut removed_packages = Vec::with_capacity(removed.len());
     while let Some(package) = removed.pop() {
         removed_packages.push(package.strip_prefix(mirror_root).unwrap().to_path_buf());
     }
@@ -257,8 +256,7 @@ pub async fn update_unchanged_packages(
 
 /// Get what and how packages changed (needs to be run before `save_packages_to_db`)
 pub async fn what_changed(pool: &PgPool, packages: &[PackageMeta]) -> Result<Vec<PVMessage>> {
-    let mut messages = Vec::new();
-    messages.reserve(packages.len());
+    let mut messages = Vec::with_capacity(packages.len());
     for p in packages {
         let key = get_repo_key_name(&p.repo, &p.deb.arch);
         let repo = format!("{}/{}", key, p.repo.0);
@@ -555,8 +553,7 @@ fn scan_elf<R: Read>(
         return Ok(());
     }
 
-    let mut content = Vec::new();
-    content.reserve(entry.size() as usize);
+    let mut content = Vec::with_capacity(entry.size() as usize);
     entry.read_to_end(&mut content)?;
     elf_header.extend(content);
     let (soname, libraries) = parse_elf(&elf_header)?;
@@ -575,8 +572,7 @@ fn collect_files<R: Read>(reader: R) -> Result<PackageContents> {
     let mut provides = HashSet::new();
     let mut requires = HashSet::new();
     let mut tar = TarArchive::new(reader);
-    let mut files = Vec::new();
-    files.reserve(100);
+    let mut files = Vec::with_capacity(100);
     for entry in tar.entries()? {
         let mut entry = entry?;
         let header = entry.header();
