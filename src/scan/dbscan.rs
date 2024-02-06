@@ -598,7 +598,11 @@ fn collect_files<R: Read>(reader: R) -> Result<PackageContents> {
             }
         }
         if let Err(e) = scan_elf(&mut entry, &mut provides, &mut requires) {
-            error!("Problems parsing ELF: {:?}", e);
+            let file_path = entry.path()?.to_path_buf();
+            error!(
+                "Problems parsing ELF: {:?}",
+                e.context(format!("when checking {:?}", file_path))
+            );
         }
     }
 
