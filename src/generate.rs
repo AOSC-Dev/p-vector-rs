@@ -3,10 +3,13 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::Path;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, Error, Result};
 use async_compression::tokio::write::{GzipEncoder, XzEncoder, ZstdEncoder};
+use faster_hex::hex_string;
+use flate2::Compression;
 use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
 use nom::sequence::preceded;
@@ -14,6 +17,7 @@ use nom::{IResult, Parser};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use sailfish::TemplateSimple;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use time::{format_description::well_known::Rfc2822, macros::offset};
 use tokio::fs::{create_dir_all, metadata, File};
@@ -23,6 +27,8 @@ use tokio::task::spawn_blocking;
 use crate::config::ReleaseConfig;
 use crate::scan::{mtime, sha256sum};
 use crate::sign::{load_certificate, sign_message, sign_message_agent};
+
+const XZ_DEFAULT_QUALITY: u32 = 5;
 
 #[derive(Clone, Debug)]
 struct PackageTemplate {
@@ -106,6 +112,7 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
             || filename.starts_with('.')
             || filename.starts_with("InRelease")
             || filename.starts_with("DEPRECATED")
+            || !entry.path_is_symlink()
         {
             continue;
         }
@@ -155,6 +162,8 @@ fn create_release_file(
     let projected_timestamp =
         time::OffsetDateTime::from_unix_timestamp(projected_timestamp.try_into().unwrap())?;
 
+    let release_files = release_files.unwrap();
+
     let rendered = (InReleaseTemplate {
         origin: config.origin.clone(),
         label: config.label.clone(),
@@ -165,7 +174,7 @@ fn create_release_file(
         valid_until: projected_timestamp.format(&Rfc2822)?,
         architectures: m.arch.as_ref().unwrap().to_vec(),
         components: m.comp.as_ref().unwrap().to_vec(),
-        files: release_files.unwrap(),
+        files: release_files,
     })
     .render_once();
     if let Err(e) = rendered {
@@ -293,50 +302,87 @@ GROUP BY df.path, df.name"#,
     .fetch_all(pool)
     .await?;
 
-    let content = lines
-        .iter()
-        .flat_map(|line| line.p.as_ref().map(|s| s.to_string()))
-        .collect::<String>();
-    let dist_path_zstd = component_root.join(format!("Contents-{}.zst", arch));
-    let dist_path_gz = component_root.join(format!("Contents-{}.gz", arch));
-    let dist_path_un = component_root.join(format!("Contents-{}", arch));
-    let dist_path_bin = component_root.join(format!("BinContents-{}", arch));
+    let content = Arc::new(
+        lines
+            .iter()
+            .flat_map(|line| line.p.as_ref().map(|s| s.to_string()))
+            .collect::<String>(),
+    );
+    let content_shared = content.clone();
+    let content_shared_2 = content.clone();
+
+    let by_hash_root = component_root.join("by-hash");
+    create_dir_all(&by_hash_root).await?;
+
+    let checksum_task_un = spawn_blocking(move || -> Result<String> {
+        let mut sha256 = Sha256::new();
+        std::io::copy(&mut content_shared.as_bytes(), &mut sha256)?;
+
+        Ok(hex_string(&sha256.finalize()))
+    });
+
+    let checksum_task = spawn_blocking(move || -> Result<String> {
+        let mut sha256 = Sha256::new();
+
+        // async_compression::Level::Default equal flate2::Compression::default()
+        std::io::copy(
+            &mut flate2::read::GzEncoder::new(content_shared_2.as_bytes(), Compression::default()),
+            &mut sha256,
+        )?;
+
+        Ok(hex_string(&sha256.finalize()))
+    });
+
+    let checksum_task_bin = spawn_blocking(move || -> Result<(String, String)> {
+        let mut sha256 = Sha256::new();
+        let bin = lines
+            .into_iter()
+            .filter_map(|s| {
+                s.p.and_then(|s| {
+                    if s.contains("usr/bin/") {
+                        Some(s)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect::<String>();
+        std::io::copy(&mut bin.as_bytes(), &mut sha256)?;
+
+        Ok((hex_string(&sha256.finalize()), bin))
+    });
+
+    let results = tokio::join!(checksum_task_un, checksum_task, checksum_task_bin);
+    let (checksum_un, checksum, (checksum_bin, bin)) = (results.0??, results.1??, results.2??);
+
+    let dist_path = by_hash_root.join(checksum);
+    let dist_path_un = by_hash_root.join(checksum_un);
+    let dist_path_bin = by_hash_root.join(checksum_bin);
 
     tokio::try_join!(
         async {
-            let mut f = ZstdEncoder::new(File::create(dist_path_zstd).await?);
+            // async_compression::Level::Default equal flate2::Compression::default()
+            let mut f = GzipEncoder::with_quality(
+                File::create(&dist_path).await?,
+                async_compression::Level::Default,
+            );
             f.write_all(content.as_bytes()).await?;
             f.shutdown().await?;
+            tokio::fs::symlink(dist_path, format!("../Contents-{}.gz", arch)).await?;
             Ok::<(), Error>(())
         },
         async {
-            let mut f = GzipEncoder::new(File::create(dist_path_gz).await?);
-            f.write_all(content.as_bytes()).await?;
-            f.shutdown().await?;
-            Ok::<(), Error>(())
-        },
-        async {
-            let mut f1 = File::create(dist_path_un).await?;
+            let mut f1 = File::create(&dist_path_un).await?;
             f1.write_all(content.as_bytes()).await?;
             f1.shutdown().await?;
+            tokio::fs::symlink(dist_path_un, format!("../Contents-{}", arch)).await?;
             Ok::<(), Error>(())
         },
         async {
-            let bin = lines
-                .into_iter()
-                .filter_map(|s| {
-                    s.p.and_then(|s| {
-                        if s.contains("usr/bin/") {
-                            Some(s)
-                        } else {
-                            None
-                        }
-                    })
-                })
-                .collect::<String>();
-            let mut f3 = File::create(dist_path_bin).await?;
+            let mut f3 = File::create(&dist_path_bin).await?;
             f3.write_all(bin.as_bytes()).await?;
             f3.shutdown().await?;
+            tokio::fs::symlink(dist_path_bin, format!("../BinContents-{}", arch)).await?;
             Ok::<(), Error>(())
         }
     )?;
@@ -355,7 +401,6 @@ pub async fn render_contents_in_component(
         .fetch_all(pool)
         .await?;
     let component_root = mirror_root.join("dists").join(component);
-    create_dir_all(&component_root).await?;
 
     let mut tasks = Vec::new();
     for record in records {
@@ -385,24 +430,66 @@ async fn render_packages_in_component_arch(
     arch: &str,
     packages: Vec<PackageTemplate>,
     component_root: &Path,
-) -> Result<()> {
+) -> Result<(String, String)> {
     let dist_path = component_root.join(format!("binary-{}", arch));
-    create_dir_all(&dist_path).await?;
-    let mut package_file = File::create(dist_path.join("Packages")).await?;
-    let mut package_file_xz = XzEncoder::new(File::create(dist_path.join("Packages.xz")).await?);
-    let rendered = spawn_blocking(move || PackagesTemplate { packages }.render_once()).await??;
+    let by_hash_path = dist_path.join("by-hash");
+    create_dir_all(&by_hash_path).await?;
+
+    let rendered =
+        Arc::new(spawn_blocking(move || PackagesTemplate { packages }.render_once()).await??);
+
+    let rendered_shared = rendered.clone();
+    let rendered_shared_2 = rendered.clone();
+
+    let checksum_task_1 = spawn_blocking(move || -> Result<String> {
+        let mut sha256 = Sha256::new();
+        std::io::copy(&mut rendered_shared.as_bytes(), &mut sha256)?;
+
+        Ok(hex_string(&sha256.finalize()))
+    });
+
+    let checksum_task_2 = spawn_blocking(move || -> Result<String> {
+        let mut sha256 = Sha256::new();
+        std::io::copy(
+            &mut xz2::read::XzEncoder::new(rendered_shared_2.as_bytes(), XZ_DEFAULT_QUALITY),
+            &mut sha256,
+        )?;
+
+        Ok(hex_string(&sha256.finalize()))
+    });
+
+    let results = tokio::join!(checksum_task_1, checksum_task_2);
+
+    // Get file name (checksum)
+    let package_file_chksum = results.0??;
+    let package_file_xz_chksum = results.1??;
+
+    let packages_file_path = by_hash_path.join(&package_file_chksum);
+    let packages_file_xz_path = by_hash_path.join(&package_file_xz_chksum);
+
+    let mut package_file = File::create(&packages_file_path).await?;
+    let mut package_file_xz = XzEncoder::with_quality(
+        File::create(&packages_file_xz_path).await?,
+        async_compression::Level::Precise(XZ_DEFAULT_QUALITY as i32),
+    );
 
     let results = tokio::join!(
         package_file.write_all(rendered.as_bytes()),
-        package_file_xz.write_all(rendered.as_bytes())
+        package_file_xz.write_all(rendered.as_bytes()),
     );
+
     // Raise an error if any
     results.0?;
     results.1?;
+
     // flush compressor cache
     package_file_xz.shutdown().await?;
 
-    Ok(())
+    // Compare unsupport Acquire-By-Hash client
+    tokio::fs::symlink(packages_file_path, "../Packages").await?;
+    tokio::fs::symlink(packages_file_xz_path, "../Packages.xz").await?;
+
+    Ok((package_file_chksum, package_file_xz_chksum))
 }
 
 pub async fn render_packages_in_component(
