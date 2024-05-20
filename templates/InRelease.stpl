@@ -9,3 +9,4 @@ Architectures: <%- architectures.join(" ") %>
 Components: <%- components.join(" ") %>
 SHA256:<% for c in files { %>
  <%- c.2 %> <%- c.1 %> <%- c.0 %><% } %>
+Acquire-By-Hash: yes
