@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use async_compression::tokio::write::{GzipEncoder, XzEncoder, ZstdEncoder};
 use faster_hex::hex_string;
 use flate2::Compression;
@@ -25,7 +25,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::task::spawn_blocking;
 
 use crate::config::ReleaseConfig;
-use crate::scan::{mtime, sha256sum};
+use crate::scan::mtime;
 use crate::sign::{load_certificate, sign_message, sign_message_agent};
 
 const XZ_DEFAULT_QUALITY: u32 = 5;
@@ -94,7 +94,13 @@ fn scan_single_release_file(branch_root: &Path, path: &Path) -> Result<(String, 
     use std::io::Seek;
 
     let mut f = StdFile::open(path)?;
-    let sha256 = sha256sum(&f)?;
+
+    let sha256 = std::fs::read_link(path)?
+        .file_name()
+        .context("Failed to get symlink file name")?
+        .to_string_lossy()
+        .to_string();
+
     let filename = path.strip_prefix(branch_root)?.to_string_lossy();
     let length = f.stream_position()?;
 
@@ -430,7 +436,7 @@ async fn render_packages_in_component_arch(
     arch: &str,
     packages: Vec<PackageTemplate>,
     component_root: &Path,
-) -> Result<(String, String)> {
+) -> Result<()> {
     let dist_path = component_root.join(format!("binary-{}", arch));
     let by_hash_path = dist_path.join("by-hash");
     create_dir_all(&by_hash_path).await?;
@@ -489,7 +495,7 @@ async fn render_packages_in_component_arch(
     tokio::fs::symlink(packages_file_path, "../Packages").await?;
     tokio::fs::symlink(packages_file_xz_path, "../Packages.xz").await?;
 
-    Ok((package_file_chksum, package_file_xz_chksum))
+    Ok(())
 }
 
 pub async fn render_packages_in_component(
