@@ -178,3 +178,85 @@ Use pv_dbsync to record last sync of abbs.db.
 - package_upstream
 - anitya_link
 - anitya_projects
+
+## v_packages_new
+
+Find the packages with latest version (i.e. skip old versions). Implemented by ordering by `_vercomp` and then `SELECT DISTINCT ON` to use the latest one.
+
+Does not consider case when a package in `all` is newer than the one in `amd64`.
+
+```sql
+create materialized view v_packages_new as
+SELECT DISTINCT ON (pv_packages.repo, pv_packages.package) pv_packages.package,
+                                                           pv_packages.version,
+                                                           pv_packages.repo,
+                                                           pv_packages.architecture,
+                                                           pv_packages.filename,
+                                                           pv_packages.size,
+                                                           pv_packages.sha256,
+                                                           pv_packages.mtime,
+                                                           pv_packages.debtime,
+                                                           pv_packages.section,
+                                                           pv_packages.installed_size,
+                                                           pv_packages.maintainer,
+                                                           pv_packages.description,
+                                                           pv_packages._vercomp
+FROM pv_packages
+WHERE pv_packages.debtime IS NOT NULL
+ORDER BY pv_packages.repo, pv_packages.package, pv_packages._vercomp DESC;
+```
+
+## v_dpkg_dependencies
+
+Queries dpkg dependencies.
+
+```sql
+create materialized view v_dpkg_dependencies as
+SELECT q3.package,
+       q3.version,
+       q3.repo,
+       q3.relationship,
+       -- dependency index
+       -- e.g. gcc-runtime is the first, nr=1; glibc is the second, nr=2
+       q3.nr,
+       -- extract fields from e.g. gcc-runtime (>= 13.2.0-2)
+       -- e.g. gcc-runtime
+       q3.depspl[1]                     AS deppkg,
+       -- e.g. null since unset
+       q3.depspl[2]                     AS deparch,
+       -- e.g. >=
+       q3.depspl[3]                     AS relop,
+       -- e.g. 13.2.0-2
+       q3.depspl[4]                     AS depver,
+       -- converted depver
+       comparable_dpkgver(q3.depspl[4]) AS depvercomp
+FROM (SELECT q2.package,
+             q2.version,
+             q2.repo,
+             q2.relationship,
+             q2.nr,
+             regexp_match(q2.dep, ('^\s*([a-zA-Z0-9.+-]{2,})(?::([a-zA-Z0-9][a-zA-Z0-9-]*))?'::text ||
+                                   '(?:\s*\(\s*([>=<]+)\s*([0-9a-zA-Z:+~.-]+)\s*\))?(?:\s*\[[\s!\w-]+\])?'::text) ||
+                                  '\s*(?:<.+>)?\s*$'::text) AS depspl
+    -- handle OR dependencies
+      FROM (SELECT q1.package,
+                   q1.version,
+                   q1.repo,
+                   q1.relationship,
+                   q1.nr,
+                   unnest(string_to_array(q1.dep, '|'::text)) AS dep
+            -- collect dpkg dependencies
+            FROM (SELECT d.package,
+                         d.version,
+                         d.repo,
+                         d.relationship,
+                         v.nr,
+                         v.val AS dep
+                  FROM pv_package_dependencies d
+                           JOIN v_packages_new n USING (package, version, repo)
+                           -- expand e.g. gcc-runtime (>= 13.2.0-2), glibc (>= 1:2.37-1)
+                           -- into separate rows
+                           JOIN LATERAL unnest(string_to_array(d.value, ','::text)) WITH ORDINALITY v(val, nr)
+                                ON true) q1) q2) q3;
+```
+
