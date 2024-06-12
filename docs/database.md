@@ -2,6 +2,8 @@
 
 ## pv_repos
 
+Track debian repos.
+
 ```sql
 create table pv_repos
 (
@@ -26,6 +28,8 @@ create table pv_repos
 ```
 
 ## pv_packages
+
+Track debian packages: uniquely identified by `(package name, version, repo)`.
 
 ```sql
 create table pv_packages
@@ -63,6 +67,95 @@ create table pv_packages
     -- compress version for sorting, see comparable_dpkgver function
     _vercomp       text                         not null,
     primary key (package, version, repo)
+);
+```
+
+## pv_package_dependencies
+
+Track package dependencies.
+
+```sql
+create table pv_package_dependencies
+(
+    -- package name, match pv_packages
+    package      text not null,
+    -- package version, match pv_packages
+    version      text not null,
+    -- package repo, match pv_packages
+    repo         text not null,
+    -- deb package relationship e.g. Depends, Breaks, Conflicts
+    relationship text not null,
+    -- deb package dependency e.g. gcc-runtime (>= 13.2.0-2), glibc (>= 1:2.37-1)
+    value        text not null,
+    primary key (package, version, repo, relationship),
+    constraint fkey_package
+        foreign key (package, version, repo) references pv_packages
+            on delete cascade
+            deferrable initially deferred
+);
+```
+
+## pv_package_files
+
+Trace package contents.
+
+```sql
+create table pv_package_files
+(
+    -- package name, match pv_packages
+    package text,
+    -- package version, match pv_packages
+    version text,
+    -- package repo, match pv_packages
+    repo    text,
+    -- relative parent folder in deb content
+    path    text,
+    -- file name in deb content
+    name    text,
+    -- size in bytes
+    size    bigint,
+    -- file type, see unix file type enums
+    ftype   smallint,
+    -- file permission in octal
+    perm    integer,
+    -- unix user id
+    uid     bigint,
+    -- unix group id
+    gid     bigint,
+    -- user owner name
+    uname   text,
+    -- group owner name
+    gname   text,
+    constraint fkey_package
+        foreign key (package, version, repo) references pv_packages
+            on delete cascade
+            deferrable initially deferred
+);
+```
+
+## pv_package_sodep
+
+Track package shared library provides and dependencies.
+
+```sql
+create table pv_package_sodep
+(
+    -- package name, match pv_packages
+    package text,
+    -- package version, match pv_packages
+    version text,
+    -- package repo, match pv_packages
+    repo    text,
+    -- 0 if the package provides, 1 if the package requires
+    depends integer,
+    -- .so name excluding version suffix e.g. libc.so
+    name    text,
+    -- .so version e.g. .6
+    ver     text,
+    constraint fkey_package
+        foreign key (package, version, repo) references pv_packages
+            on delete cascade
+            deferrable initially deferred
 );
 ```
 
