@@ -260,3 +260,107 @@ FROM (SELECT q2.package,
                                 ON true) q1) q2) q3;
 ```
 
+## v_so_breaks
+
+Collect info where package A might break package B if package A changes its shared library version.
+
+In another words, package A provides a shared library which is used by package B.
+
+```sql
+create materialized view v_so_breaks as
+SELECT sp.package,
+       sp.repo,
+       sp.name    AS soname,
+       sp.ver     AS sover,
+       sd.ver     AS sodepver,
+       sd.package AS dep_package,
+       sd.repo    AS dep_repo,
+       sd.version AS dep_version
+-- sp (package A) provides a shared library (see WHERE clause below)
+FROM pv_package_sodep sp
+         JOIN v_packages_new vp USING (package, version, repo)
+         -- filter sd
+         JOIN pv_repos rp ON rp.name = sp.repo
+         -- same arch or package B is noarch
+         -- same component or package B is in main
+         -- if A in topic, B in topic or stable
+         -- if A in stable, B in stable
+         JOIN pv_repos rd
+              ON (rd.architecture = rp.architecture OR rd.architecture = 'all'::text) AND rp.testing <= rd.testing AND
+                 (rp.component = rd.component OR rp.component = 'main'::text)
+         -- sd (package B) depends on the shared lirbary
+         JOIN pv_package_sodep sd
+              ON sd.depends = 1 AND sd.repo = rd.name AND sd.name = sp.name AND sd.package <> sp.package AND
+                 (sp.ver = sd.ver OR sp.ver ~~ (sd.ver || '.%'::text))
+         JOIN v_packages_new vp2 ON vp2.package = sd.package AND vp2.version = sd.version AND vp2.repo = sd.repo
+WHERE sp.depends = 0
+UNION ALL
+-- TODO: analyze pv_package_issues
+SELECT sp.package,
+       sp.repo,
+       sp.name                                                            AS soname,
+       sp.ver                                                             AS sover,
+       "substring"(pi.filename, "position"(pi.filename, '.so'::text) + 3) AS sodepver,
+       pi.package                                                         AS dep_package,
+       pi.repo                                                            AS dep_repo,
+       pi.version                                                         AS dep_version
+FROM pv_package_sodep sp
+         JOIN v_packages_new vp USING (package, version, repo)
+         JOIN pv_repos rp ON rp.name = sp.repo
+         JOIN pv_repos rd
+              ON (rd.architecture = rp.architecture OR rd.architecture = 'all'::text) AND rp.testing <= rd.testing AND
+                 (rp.component = rd.component OR rp.component = 'main'::text)
+         JOIN pv_package_issues pi ON pi.repo = rd.name AND pi.package <> sp.package AND
+                                      "substring"(pi.filename, 1, "position"(pi.filename, '.so'::text) + 2) =
+                                      sp.name AND
+                                      (sp.ver || '.'::text) ~~ ((pi.detail ->> 'sover_provide'::text) || '.%'::text) AND
+                                      pi.errno = 431 AND pi.detail IS NOT NULL
+WHERE sp.depends = 0;
+```
+
+## v_so_breaks_dep
+
+Collect reverse library dependencies, and provide reverse library dependencies of the direct reverse library dependencies, e.g.:
+
+- package: A
+- dep_package: B
+- deplist: {C, D}
+
+means:
+
+- A provides a shared library which B depends i.e. B is a reverse library dependency of A
+- C and D are a reverse library dependency of A
+- B is a reverse library dependency of C and D
+
+This info can be used to reorder reverse library dependencies upon SONAME bump.
+
+
+```sql
+create materialized view v_so_breaks_dep as
+-- collect pairs or (package A, package B) from v_so_breaks
+WITH pkg_so_breaks AS (SELECT DISTINCT v_so_breaks.package,
+                                       v_so_breaks.dep_package
+                       FROM v_so_breaks)
+SELECT s.package,
+       s.dep_package,
+       COALESCE(q.deplist, ARRAY []::text[]) AS deplist
+FROM pkg_so_breaks s
+         LEFT JOIN (SELECT s1.package,
+                           s1.dep_package,
+                           array_agg(s2.dep_package) AS deplist
+                    FROM pkg_so_breaks s1
+                             -- find another dep_package
+                             -- where current dep_package depends on
+                             -- becomes deplist
+                             JOIN pkg_so_breaks s2 ON s1.package = s2.package AND s1.dep_package <> s2.dep_package
+                             JOIN (SELECT package_dependencies.package,
+                                          package_dependencies.dependency
+                                   FROM package_dependencies
+                                   WHERE package_dependencies.relationship = ANY
+                                         (ARRAY ['PKGDEP'::text, 'BUILDDEP'::text])
+                                   UNION
+                                   SELECT pkg_so_breaks.dep_package AS package,
+                                          pkg_so_breaks.package     AS dependency
+                                   FROM pkg_so_breaks) d ON d.dependency = s1.dep_package AND d.package = s2.dep_package
+                    GROUP BY s1.package, s1.dep_package) q USING (package, dep_package);
+```
