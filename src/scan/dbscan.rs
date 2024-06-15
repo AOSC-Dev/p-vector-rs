@@ -353,6 +353,13 @@ fn split_so_name(name: &str) -> (Option<&str>, Option<&str>) {
 
 #[inline]
 fn normalize_path(path: &str) -> &str {
+    // . -> <EMPTY>
+    if path == "." {
+        return "";
+    }
+
+    // ./usr -> usr
+    // /usr -> usr
     path.strip_prefix("./")
         .unwrap_or_else(|| path.strip_prefix('/').unwrap_or(path))
 }
