@@ -3,7 +3,7 @@
 db_pgconn = "postgresql://localhost/packages"
 # Use for package change notifier, set to null to disable it
 # If you don't use this feature, disabling it could improve performance
-change_notifier = "ipc:///tmp/p-vector-changes"
+change_notifier = "redis://127.0.0.1/"
 # Path to repository
 path = "/mirror/debs"
 # Auto-discover branches

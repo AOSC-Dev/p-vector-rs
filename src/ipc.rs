@@ -1,7 +1,6 @@
 use anyhow::Result;
-use bincode::serialize;
+use redis::{Commands, Connection};
 use serde::Serialize;
-use zmq::{Context, Socket, PUB};
 
 #[derive(Serialize, Debug)]
 pub struct PVMessage {
@@ -33,16 +32,16 @@ impl PVMessage {
     }
 }
 
-pub fn zmq_bind(ipc_address: &str) -> Result<Socket> {
-    let socket = Context::new().socket(PUB)?;
-    socket.bind(ipc_address)?;
+pub fn redis_connect(ipc_address: &str) -> Result<Connection> {
+    let client = redis::Client::open(ipc_address)?;
+    let con = client.get_connection()?;
 
-    Ok(socket)
+    Ok(con)
 }
 
-pub fn publish_pv_messages(messages: &[PVMessage], socket: &Socket) -> Result<()> {
-    let serialized = serialize(&messages)?;
-    socket.send(serialized, 0)?;
+pub fn publish_pv_messages(messages: &[PVMessage], conn: &mut Connection) -> Result<()> {
+    let serialized = serde_json::to_string(&messages)?;
+    conn.publish("p-vector-publish", serialized)?;
 
     Ok(())
 }

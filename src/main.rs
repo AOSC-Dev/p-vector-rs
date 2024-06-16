@@ -334,15 +334,15 @@ async fn ipc_publish(
     deleted: &[PathBuf],
 ) -> Result<()> {
     if let Some(ref ipc_address) = config.config.change_notifier {
-        let socket = ipc::zmq_bind(ipc_address)?;
+        let mut socket = ipc::redis_connect(ipc_address)?;
         // sleep 1 second so that the client is ready
         sleep(Duration::from_secs(1)).await;
         info!("Collecting changed packages ...");
         let (changed, removed) = collect_package_changes(pool, packages, deleted).await?;
         info!("Publishing changes to {} ...", ipc_address);
         spawn_blocking(move || -> Result<()> {
-            ipc::publish_pv_messages(&removed, &socket)?;
-            ipc::publish_pv_messages(&changed, &socket)?;
+            ipc::publish_pv_messages(&removed, &mut socket)?;
+            ipc::publish_pv_messages(&changed, &mut socket)?;
             Ok(())
         })
         .await??;

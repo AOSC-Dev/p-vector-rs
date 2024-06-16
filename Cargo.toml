@@ -38,8 +38,6 @@ toml = "0.8"
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
 goblin = "0.8"
-bincode = "^1"
-zmq = "0.10"
 # cli
 argh = "0.1"
 dialoguer = "0.11"
@@ -49,6 +47,7 @@ sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "macros", "pos
 futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.12"
+redis = "0.25.4"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.28", features = ["fs"] }
