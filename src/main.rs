@@ -29,7 +29,6 @@ mod ipc;
 mod parser;
 mod scan;
 mod sign;
-mod sync;
 
 macro_rules! log_error {
     ($i:expr, $stage:expr) => {
@@ -86,7 +85,6 @@ async fn main() -> Result<()> {
     match args.command {
         cli::PVectorCommand::Scan(_) => scan_action(config, &pool).await?,
         cli::PVectorCommand::Release(_) => release_action(&config, &pool).await?,
-        cli::PVectorCommand::Sync(_) => sync_action(&config, &pool).await?,
         cli::PVectorCommand::Analyze(_) => {
             analysis_action(&pool, config.config.qa_interval).await?
         }
@@ -101,28 +99,16 @@ async fn main() -> Result<()> {
 
 async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     scan_action(config.clone(), pool).await?;
-    let stage1_results = tokio::join!(sync_action(&config, pool), gc_action(&config, pool));
+    let gc_result = gc_action(&config, pool).await;
     let stage2_results = tokio::join!(
         analysis_action(pool, config.config.qa_interval),
         release_action(&config, pool)
     );
-    log_error!(stage1_results.0, "synchronizing database");
-    log_error!(stage1_results.1, "garbage collecting");
+    log_error!(gc_result, "garbage collecting");
     log_error!(stage2_results.0, "analyzing issues");
     log_error!(stage2_results.1, "generating release files");
 
     Ok(())
-}
-
-async fn sync_action(config: &config::Config, pool: &PgPool) -> Result<()> {
-    if config.config.abbs_sync {
-        sync::sync_db_updates(pool).await?;
-        info!("Sync finished.");
-        Ok(())
-    } else {
-        info!("ABBS data sync is disabled.");
-        Ok(())
-    }
 }
 
 async fn analysis_action(pool: &PgPool, delay: isize) -> Result<()> {

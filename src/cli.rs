@@ -46,7 +46,6 @@ pub(crate) struct PVectorGenKey {}
 pub(crate) enum PVectorCommand {
     Scan(PVectorScan),
     Release(PVectorRelease),
-    Sync(PVectorSync),
     Analyze(PVectorAnalyze),
     Reset(PVectorReset),
     GC(PVectorGC),
