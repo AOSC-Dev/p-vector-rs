@@ -11,15 +11,9 @@ pub(crate) struct PVectorScan {}
 pub(crate) struct PVectorRelease {}
 
 #[derive(FromArgs, PartialEq, Debug)]
-/// run sync phase only: synchronize data from packages site
-#[argh(subcommand, name = "sync")]
-
-pub(crate) struct PVectorSync {}
-
-#[derive(FromArgs, PartialEq, Debug)]
-/// run analyze phase only: analyze packaging issues
-#[argh(subcommand, name = "analyze")]
-pub(crate) struct PVectorAnalyze {}
+/// run maintenance phase only: run database maintenance
+#[argh(subcommand, name = "maintenance")]
+pub(crate) struct PVectorMaintenance {}
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// reset the database (all the existing data will be deleted)
@@ -46,7 +40,7 @@ pub(crate) struct PVectorGenKey {}
 pub(crate) enum PVectorCommand {
     Scan(PVectorScan),
     Release(PVectorRelease),
-    Analyze(PVectorAnalyze),
+    Maintenance(PVectorMaintenance),
     Reset(PVectorReset),
     GC(PVectorGC),
     Full(PVectorFullCycle),

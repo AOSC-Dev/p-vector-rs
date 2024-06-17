@@ -84,14 +84,12 @@ The configuration template is heavily commented, if you have used the older vers
 
 - Set `change_notifier = null`.
 - Set `abbs_sync = false`.
-- Optionally set `qa_interval = -1` if you don't want or can't analyze the QA inspection data in the database.
 - `[[branch]]` sections: At least set the "main" branch information of your repository.
 
 #### Private repository (non-AOSC)
 
 - Set `change_notifier = null`.
 - Set `abbs_sync = false`.
-- Optionally set `qa_interval = -1` if you don't want or can't analyze the QA inspection data in the database.
 - `[[branch]]` sections: Optionally set the "main" branch information of your repository.
 
 ### Signing your repository

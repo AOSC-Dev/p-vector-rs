@@ -5,7 +5,6 @@ use anyhow::Result;
 use log::{error, info};
 use sqlx::{Executor, PgPool};
 
-const PV_QA_SQL_SCRIPT: &str = include_str!("../sql/pkgissues.sql");
 const PV_RS_SQL_SCRIPT_PV: &str = include_str!("../migrations/20210621205620_pv-base.down.sql");
 const PV_RS_SQL_SCRIPT_AB: &str = include_str!("../migrations/20210621205247_abbsdb-base.down.sql");
 
@@ -30,25 +29,12 @@ pub async fn connect_database(connspec: &str) -> Result<PgPool> {
     Ok(PgPool::connect(connspec).await?)
 }
 
-/// Run QA analysis
-pub async fn run_analysis(pool: &PgPool, delay: usize) -> Result<()> {
-    let mut tx = pool.acquire().await?;
-    let stmt = format!(
-        "SELECT max(atime) + INTERVAL '{} hours' >= now() AS refresh FROM pv_package_issues",
-        delay
-    );
-    let refresh: Option<bool> = sqlx::query_scalar(&stmt).fetch_one(&mut *tx).await?;
-    if refresh.unwrap_or(false) {
-        info!("Analysis skipped.");
-        return Ok(());
-    }
+/// Run database maintenance
+pub async fn run_maintenance(pool: &PgPool) -> Result<()> {
     info!("Refreshing materialized views ... ");
     if let Err(e) = refresh_views(pool).await {
         error!("Error refreshing views: {}", e);
     }
-    // unprepared transaction is used since this is a SQL script file
-    info!("Running analysis routine ...");
-    tx.execute(PV_QA_SQL_SCRIPT).await?;
     // vacuum the database
     info!("Running database garbage collection ...");
     sqlx::query!("VACUUM ANALYZE").execute(pool).await?;

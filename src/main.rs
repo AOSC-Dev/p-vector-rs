@@ -85,9 +85,7 @@ async fn main() -> Result<()> {
     match args.command {
         cli::PVectorCommand::Scan(_) => scan_action(config, &pool).await?,
         cli::PVectorCommand::Release(_) => release_action(&config, &pool).await?,
-        cli::PVectorCommand::Analyze(_) => {
-            analysis_action(&pool, config.config.qa_interval).await?
-        }
+        cli::PVectorCommand::Maintenance(_) => maintenance_action(&pool).await?,
         cli::PVectorCommand::Reset(_) => reset_action(&pool).await?,
         cli::PVectorCommand::GC(_) => gc_action(&config, &pool).await?,
         cli::PVectorCommand::Full(_) => full_action(config, &pool).await?,
@@ -101,24 +99,20 @@ async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     scan_action(config.clone(), pool).await?;
     let gc_result = gc_action(&config, pool).await;
     let stage2_results = tokio::join!(
-        analysis_action(pool, config.config.qa_interval),
+        maintenance_action(pool),
         release_action(&config, pool)
     );
     log_error!(gc_result, "garbage collecting");
-    log_error!(stage2_results.0, "analyzing issues");
+    log_error!(stage2_results.0, "database maintenance");
     log_error!(stage2_results.1, "generating release files");
 
     Ok(())
 }
 
-async fn analysis_action(pool: &PgPool, delay: isize) -> Result<()> {
-    if delay < 0 {
-        info!("Analysis disabled.");
-        return Ok(());
-    }
-    info!("Running analysis ...");
-    db::run_analysis(pool, delay.try_into().unwrap()).await?;
-    info!("Analysis completed.");
+async fn maintenance_action(pool: &PgPool) -> Result<()> {
+    info!("Running database maintenance ...");
+    db::run_maintenance(pool).await?;
+    info!("Maintenance completed.");
 
     Ok(())
 }

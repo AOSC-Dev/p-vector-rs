@@ -21,9 +21,6 @@ codename = "Hotfix"
 # Please export its public key using `gpg` and uncomment then edit the line below
 # certificate = "gpg:///etc/p-vector/sign.pubkey"
 certificate = "/etc/p-vector/sign.key"
-# Delay between each QA (analyze) run (in hours)
-# set this value to 0 to run QA each time; set to -1 to disable QA function altogether
-qa_interval = 4
 # Enable abbs data sync (AOSC-specific, if you are running a private repository, you should disable this)
 abbs_sync = true
 
