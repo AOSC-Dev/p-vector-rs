@@ -500,13 +500,12 @@ fn is_shared_object(path: &[u8]) -> bool {
                 .contains(".so."))
 }
 
-fn parse_elf(bytes: &[u8]) -> Result<(Option<&str>, Vec<&str>)> {
+fn parse_elf(bytes: &[u8]) -> Result<Vec<&str>> {
     use goblin::{
         container::{Container, Ctx, Endian},
         elf::{Dynamic, Elf, ProgramHeader},
         strtab::Strtab,
     };
-    let mut soname = None;
     let mut libraries = Vec::new();
     let header = Elf::parse_header(bytes)?;
     let elf = Elf::lazy_parse(header)?;
@@ -529,16 +528,12 @@ fn parse_elf(bytes: &[u8]) -> Result<(Option<&str>, Vec<&str>)> {
     if let Some(ref dynamic) = dynamic {
         let dyn_info = &dynamic.info;
         let dynstrtab = Strtab::parse(bytes, dyn_info.strtab, dyn_info.strsz, 0x0)?;
-
-        if dyn_info.soname != 0 {
-            soname = dynstrtab.get_at(dyn_info.soname);
-        }
         if dyn_info.needed_count > 0 {
             libraries = dynamic.get_libraries(&dynstrtab);
         }
     }
 
-    Ok((soname, libraries))
+    Ok(libraries)
 }
 
 /// Scan ELF files for required libraries and soname information
@@ -563,12 +558,20 @@ fn scan_elf<R: Read>(
     let mut content = Vec::with_capacity(entry.size() as usize);
     entry.read_to_end(&mut content)?;
     elf_header.extend(content);
-    let (soname, libraries) = parse_elf(&elf_header)?;
+    let libraries = parse_elf(&elf_header)?;
     for i in libraries {
         requires.insert(i.to_string());
     }
-    if let Some(soname) = soname {
-        provides.insert(soname.to_string());
+
+    // we should not use SONAME for so provides, since the dynamic linker only
+    // uses the file name to handle DT_NEEDED requests
+    if is_shared_object(&entry.path_bytes()) {
+        let path = entry.path();
+        if let Ok(path) = path {
+            if let Some(f) = path.file_name() {
+                provides.insert(f.to_string_lossy().to_string());
+            }
+        }
     }
 
     Ok(())
@@ -595,7 +598,20 @@ fn collect_files<R: Read>(reader: R) -> Result<PackageContents> {
             gname: header.groupname_bytes().map(|x| x.to_owned()),
         });
         // ================= ELF processing
-        // so provides
+        // find so provides and requires
+        //
+        // so provides are collected from file names instead of SONAME, because
+        // there are cases when the shared library has no SONAME e.g.
+        // libardourcp.so, libautofs.so and some shared libraries deliberately
+        // uses a SONAME that differs from its name, e.g. cuda stub libcuda.so
+        // has SONAME libcuda.so.1 which resides in nvidia driver
+        //
+        // so requires are collected from DT_NEEDED of ELF files in the future,
+        // we may want to handle dlopen-ed libraries
+
+        // for symlinks, we skip the expensive symlink resolving process and
+        // check whether it is a shared library by its name
+        // otherwise, we will also verify that it is in ELF format
         if is_shared_object(&entry.path_bytes()) && header.entry_type().is_symlink() {
             let path = entry.path();
             if let Ok(path) = path {
