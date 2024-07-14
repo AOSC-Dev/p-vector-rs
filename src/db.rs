@@ -127,10 +127,18 @@ pub async fn remove_packages_by_path<P: AsRef<Path>>(pool: &PgPool, path: &[P]) 
 
 /// Refresh materialized views
 pub async fn refresh_views(pool: &PgPool) -> Result<()> {
-    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_packages_new").execute(pool)?;
-    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_dpkg_dependencies").execute(pool)?;
-    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_so_breaks").execute(pool)?;
-    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_so_breaks_dep").execute(pool)?;
+    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_packages_new")
+        .execute(pool)
+        .await?;
+    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_dpkg_dependencies")
+        .execute(pool)
+        .await?;
+    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_so_breaks")
+        .execute(pool)
+        .await?;
+    sqlx::query!("REFRESH MATERIALIZED VIEW CONCURRENTLY v_so_breaks_dep")
+        .execute(pool)
+        .await?;
 
     Ok(())
 }

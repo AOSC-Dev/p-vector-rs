@@ -98,10 +98,7 @@ async fn main() -> Result<()> {
 async fn full_action(config: config::Config, pool: &PgPool) -> Result<()> {
     scan_action(config.clone(), pool).await?;
     let gc_result = gc_action(&config, pool).await;
-    let stage2_results = tokio::join!(
-        maintenance_action(pool),
-        release_action(&config, pool)
-    );
+    let stage2_results = tokio::join!(maintenance_action(pool), release_action(&config, pool));
     log_error!(gc_result, "garbage collecting");
     log_error!(stage2_results.0, "database maintenance");
     log_error!(stage2_results.1, "generating release files");
