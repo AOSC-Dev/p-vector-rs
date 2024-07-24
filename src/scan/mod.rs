@@ -103,6 +103,8 @@ fn determine_format(format: &[u8]) -> Result<TarFormat> {
         Ok(TarFormat::Xzip)
     } else if format.ends_with(b".gz") {
         Ok(TarFormat::Gzip)
+    } else if format.ends_with(b".zst") {
+        Ok(TarFormat::Zstd)
     } else {
         Err(anyhow!("Unknown format: {:?}", format))
     }
