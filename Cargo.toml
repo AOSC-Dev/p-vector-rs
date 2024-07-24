@@ -25,7 +25,8 @@ rayon = "^1"
 sailfish = "0.8"
 faster-hex = "0.9"
 crossbeam-queue = "0.3"
-tempfile = "^3"
+# tempfile = "^3"
+tempfile = { git = "https://github.com/AOSC-Tracking/tempfile.git", branch = "aosc/libc-mips64r6el" }
 fs_extra = "^1"
 time = { version = "0.3", default-features = false, features = ["serde-human-readable", "macros"] }
 secrecy = "0.8"
