@@ -23,6 +23,7 @@ macro_rules! read_compressed {
         match $format {
             TarFormat::Xzip => $func(XzDecoder::new($reader)),
             TarFormat::Gzip => $func(GzDecoder::new($reader)),
+            TarFormat::Zstd => $func(zstd::stream::read::Decoder::new($reader)?),
         }
     }};
 }
@@ -74,6 +75,7 @@ pub(crate) fn mtime(stat: &Metadata) -> Result<u64> {
 enum TarFormat {
     Xzip,
     Gzip,
+    Zstd,
 }
 
 /// Collect control information

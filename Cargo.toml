@@ -48,6 +48,7 @@ futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip", "xz"] }
 reqwest = "0.12"
 redis = "0.25.4"
+zstd = "0.13.2"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.28", features = ["fs"] }
