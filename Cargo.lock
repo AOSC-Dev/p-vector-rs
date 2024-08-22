@@ -173,6 +173,8 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "xz2",
+ "zstd",
+ "zstd-safe",
 ]
 
 [[package]]

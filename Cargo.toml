@@ -46,7 +46,7 @@ dialoguer = "0.11"
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
 sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
 futures = "0.3"
-async-compression = { version = "0.4", features = ["tokio", "gzip", "xz"] }
+async-compression = { version = "0.4", features = ["tokio", "gzip", "xz", "zstd"] }
 reqwest = "0.12"
 redis = "0.25.4"
 zstd = "0.13.2"
