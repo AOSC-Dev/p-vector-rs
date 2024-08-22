@@ -6,7 +6,7 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, Error, Result};
-use async_compression::tokio::write::{GzipEncoder, XzEncoder};
+use async_compression::tokio::write::{GzipEncoder, XzEncoder, ZstdEncoder};
 use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
 use nom::sequence::preceded;
@@ -264,12 +264,20 @@ GROUP BY df.path, df.name"#,
         .iter()
         .flat_map(|line| line.p.as_ref().map(|s| s.to_string()))
         .collect::<String>();
-    let dist_path = component_root.join(format!("Contents-{}.gz", arch));
+    let dist_path_zstd = component_root.join(format!("Contents-{}.zst", arch));
+    let dist_path_gz = component_root.join(format!("Contents-{}.gz", arch));
     let dist_path_un = component_root.join(format!("Contents-{}", arch));
     let dist_path_bin = component_root.join(format!("BinContents-{}", arch));
+
     tokio::try_join!(
         async {
-            let mut f = GzipEncoder::new(File::create(dist_path).await?);
+            let mut f = ZstdEncoder::new(File::create(dist_path_zstd).await?);
+            f.write_all(content.as_bytes()).await?;
+            f.shutdown().await?;
+            Ok::<(), Error>(())
+        },
+        async {
+            let mut f = GzipEncoder::new(File::create(dist_path_gz).await?);
             f.write_all(content.as_bytes()).await?;
             f.shutdown().await?;
             Ok::<(), Error>(())
