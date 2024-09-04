@@ -22,7 +22,7 @@ flate2 = "^1"
 anyhow = "^1"
 sha2 = "0.10"
 rayon = "^1"
-sailfish = "0.8"
+sailfish = "0.9"
 faster-hex = "0.9"
 crossbeam-queue = "0.3"
 # tempfile = "^3"
@@ -32,7 +32,7 @@ time = { version = "0.3", default-features = false, features = ["serde-human-rea
 secrecy = "0.8"
 sequoia-openpgp = { version = "^1", features = ["crypto-nettle"], default-features = false }
 memmap2 = "0.9"
-sequoia-ipc = "0.34"
+sequoia-gpg-agent = "0.4"
 # parser implementations
 nom = "^7"
 toml = "0.8"
@@ -44,15 +44,15 @@ argh = "0.1"
 dialoguer = "0.11"
 # async and database
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
-sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
 futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip", "xz", "zstd"] }
 reqwest = "0.12"
-redis = "0.25.4"
+redis = "0.26.1"
 zstd = "0.13.2"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.28", features = ["fs"] }
+nix = { version = "0.29", features = ["fs"] }
 sd-notify = { version = "0.4", optional = true }
 
 [features]
