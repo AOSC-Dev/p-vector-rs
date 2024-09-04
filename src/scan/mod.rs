@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use ar::Archive as ArArchive;
 use faster_hex::hex_string;
 use flate2::read::GzDecoder;
-use log::{error, info};
+use log::{debug, error, info};
 use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 use std::fs::Metadata;
@@ -83,6 +83,7 @@ fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
     let mut tar = TarArchive::new(reader);
     for entry in tar.entries()? {
         let mut entry = entry?;
+        debug!("{:?}", entry.path());
         if entry.path_bytes().as_ref() == &b"./control"[..] {
             let mut buf = Vec::with_capacity(1024);
             entry.read_to_end(&mut buf)?;
