@@ -84,7 +84,7 @@ fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
     for entry in tar.entries()? {
         let mut entry = entry?;
         debug!("{:?}", entry.path());
-        if entry.path_bytes().as_ref() == &b"./control"[..] {
+        if entry.path()?.file_name().is_some_and(|x| x == "control") {
             let mut buf = Vec::with_capacity(1024);
             entry.read_to_end(&mut buf)?;
             return Ok(buf);
