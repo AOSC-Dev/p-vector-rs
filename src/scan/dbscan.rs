@@ -592,8 +592,8 @@ fn collect_files<R: Read>(reader: R) -> Result<PackageContents> {
             size: entry.size(),
             type_: header.entry_type().as_byte(),
             perms: header.mode()?,
-            uid: header.uid()?,
-            gid: header.gid()?,
+            uid: header.uid().unwrap_or(0),
+            gid: header.gid().unwrap_or(0),
             uname: header.username_bytes().map(|x| x.to_owned()),
             gname: header.groupname_bytes().map(|x| x.to_owned()),
         });
