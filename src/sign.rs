@@ -5,7 +5,7 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{Message, Signer};
 use openpgp::serialize::SerializeInto;
 use openpgp::types::KeyFlags;
-use sailfish::TemplateOnce;
+use sailfish::TemplateSimple;
 use secrecy::{Secret, SecretVec};
 use sequoia_openpgp as openpgp;
 use std::io::Write;
@@ -21,7 +21,7 @@ pub struct GeneratedCert {
     pub expiry: u64,
 }
 
-#[derive(TemplateOnce)]
+#[derive(TemplateSimple)]
 #[template(path = "gen-key-instructions.stpl")]
 struct InstructionsTemplate {
     pubkey: String,
@@ -77,7 +77,7 @@ pub fn load_certificate<P: AsRef<Path>>(cert_path: P) -> Result<Cert> {
 }
 
 pub fn sign_message_agent(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
-    use sequoia_ipc::gnupg::{Context, KeyPair};
+    use sequoia_gpg_agent::gnupg::{Context, KeyPair};
     let policy = StandardPolicy::new();
     let keypair = cert
         .keys()

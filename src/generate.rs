@@ -12,7 +12,7 @@ use nom::bytes::complete::{tag, take_until};
 use nom::sequence::preceded;
 use nom::IResult;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use sailfish::TemplateOnce;
+use sailfish::TemplateSimple;
 use serde_json::Value;
 use sqlx::PgPool;
 use time::{format_description::well_known::Rfc2822, macros::offset};
@@ -39,13 +39,13 @@ struct PackageTemplate {
     dep: Option<Value>,
 }
 
-#[derive(TemplateOnce)]
+#[derive(TemplateSimple)]
 #[template(path = "Packages.stpl")]
 struct PackagesTemplate {
     packages: Vec<PackageTemplate>,
 }
 
-#[derive(TemplateOnce)]
+#[derive(TemplateSimple)]
 #[template(path = "InRelease.stpl")]
 struct InReleaseTemplate {
     origin: String,
