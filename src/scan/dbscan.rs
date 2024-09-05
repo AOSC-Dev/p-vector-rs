@@ -2,7 +2,6 @@
 
 use anyhow::{anyhow, Result};
 use crossbeam_queue::SegQueue;
-use flate2::read::GzDecoder;
 use log::{error, info, warn};
 use rayon::prelude::*;
 use sqlx::{PgPool, Postgres, Transaction};
@@ -13,13 +12,12 @@ use std::{
     path::{Path, PathBuf},
 };
 use std::{fs::Metadata, path::Component};
-use xz2::read::XzDecoder;
 
+use crate::db;
 use crate::ipc::PVMessage;
 use crate::scan::{determine_format, open_compressed_control, ArArchive, TarArchive};
-use crate::{db, read_compressed};
 
-use super::{mtime, HashedReader, TarFormat};
+use super::{mtime, read_compressed, HashedReader, TarFormat};
 
 macro_rules! must_have {
     ($map:ident, $name:expr) => {{
@@ -117,7 +115,7 @@ struct RepositoryMeta {
 }
 
 fn open_compressed_data<R: Read>(reader: R, format: &TarFormat) -> Result<PackageContents> {
-    read_compressed!(format, collect_files[reader])
+    read_compressed(format, reader, collect_files)
 }
 
 /// Collect left-over fields from the hashmap
