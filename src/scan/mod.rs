@@ -12,20 +12,22 @@ use std::{io::Read, path::Path};
 use tar::Archive as TarArchive;
 use walkdir::{DirEntry, WalkDir};
 use xz2::read::XzDecoder;
+use zstd::stream::read::Decoder as ZstdDecoder;
 
 mod dbscan;
 
 pub use self::dbscan::*;
 
-#[macro_export]
-macro_rules! read_compressed {
-    ($format:ident, $func:ident [ $reader:ident ]) => {{
-        match $format {
-            TarFormat::Xzip => $func(XzDecoder::new($reader)),
-            TarFormat::Gzip => $func(GzDecoder::new($reader)),
-            TarFormat::Zstd => $func(zstd::stream::read::Decoder::new($reader)?),
-        }
-    }};
+fn read_compressed<'a, O, R: Read + 'a, C: Fn(Box<dyn Read + 'a>) -> Result<O>>(
+    format: &TarFormat,
+    reader: R,
+    control_callback: C,
+) -> Result<O> {
+    match format {
+        TarFormat::Xzip => control_callback(Box::new(XzDecoder::new(reader))),
+        TarFormat::Gzip => control_callback(Box::new(GzDecoder::new(reader))),
+        TarFormat::Zstd => control_callback(Box::new(ZstdDecoder::new(reader)?)),
+    }
 }
 
 pub struct HashedReader<R: Read> {
@@ -95,7 +97,7 @@ fn collect_control<R: Read>(reader: R) -> Result<Vec<u8>> {
 }
 
 fn open_compressed_control<R: Read>(reader: R, format: &TarFormat) -> Result<Vec<u8>> {
-    read_compressed!(format, collect_control[reader])
+    read_compressed(format, reader, collect_control)
 }
 
 /// Determine the compression format based on the extension name
