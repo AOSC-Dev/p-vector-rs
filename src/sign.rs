@@ -6,7 +6,7 @@ use openpgp::serialize::stream::{Message, Signer};
 use openpgp::serialize::SerializeInto;
 use openpgp::types::KeyFlags;
 use sailfish::TemplateSimple;
-use secrecy::{Secret, SecretVec};
+use secrecy::SecretSlice;
 use sequoia_openpgp as openpgp;
 use std::io::Write;
 use std::path::Path;
@@ -16,8 +16,8 @@ const CERT_LIFETIME: u64 = 2 * 31_556_952; // ~2 years
 
 pub struct GeneratedCert {
     pub id: String,
-    pub pubkey: SecretVec<u8>,
-    pub privkey: SecretVec<u8>,
+    pub pubkey: SecretSlice<u8>,
+    pub privkey: SecretSlice<u8>,
     pub expiry: u64,
 }
 
@@ -58,8 +58,8 @@ pub fn generate_certificate(userid: &str) -> Result<GeneratedCert> {
             None,
         )
         .generate()?;
-    let pubkey = Secret::new(cert.armored().to_vec()?);
-    let privkey = Secret::new(cert.as_tsk().armored().to_vec()?);
+    let pubkey = SecretSlice::from(cert.armored().to_vec()?);
+    let privkey = SecretSlice::from(cert.as_tsk().armored().to_vec()?);
     let id = cert.fingerprint().to_string();
     // -60 because sequoia backdates the timestamp by 60 seconds to make signatures immediately binding
     let expiry = now + CERT_LIFETIME - 60;
