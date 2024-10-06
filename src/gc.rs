@@ -37,10 +37,27 @@ async fn clean_dist_files(to_remove: &[&String], mirror_root: &Path) {
     futures::future::join_all(tasks).await;
 }
 
+async fn clean_removed_main_branches(pool: &PgPool) -> Result<()> {
+    sqlx::query!(
+        "WITH deleted_branches AS (
+    SELECT r.name FROM pv_repos r
+    LEFT JOIN pv_packages p ON p.repo = r.name
+    GROUP BY r.name HAVING COUNT(DISTINCT p.package) < 1
+)
+DELETE FROM pv_repos USING deleted_branches
+WHERE pv_repos.name = deleted_branches.name"
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 /// Execute garbage collection
 pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()> {
     info!("Deleting duplicated and stale entries from the database ...");
     sqlx::query!("DELETE FROM pv_package_duplicate USING pv_packages WHERE pv_package_duplicate.filename = pv_packages.filename").execute(pool).await?;
+    clean_removed_main_branches(pool).await?;
     let known_branches = list_existing_branches(pool).await?;
     let to_remove = known_branches
         .iter()
