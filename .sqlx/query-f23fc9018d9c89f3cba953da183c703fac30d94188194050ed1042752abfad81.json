@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH deleted_branches AS (\n    SELECT r.name FROM pv_repos r\n    LEFT JOIN pv_packages p ON p.repo = r.name\n    GROUP BY r.name HAVING COUNT(DISTINCT p.package) < 1\n)\nDELETE FROM pv_repos USING deleted_branches\nWHERE pv_repos.name = deleted_branches.name",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f23fc9018d9c89f3cba953da183c703fac30d94188194050ed1042752abfad81"
+}
