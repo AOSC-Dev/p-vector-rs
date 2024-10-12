@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO pv_packages VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, comparable_dpkgver($2))\nON CONFLICT (package, version, repo)\nDO UPDATE SET filename=$5,size=$6,sha256=$7,mtime=$8,debtime=$9,section=$10,installed_size=$11,maintainer=$12,description=$13\nRETURNING (xmax = 0) AS new",
+  "query": "INSERT INTO pv_packages VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, comparable_dpkgver($2), $14)\nON CONFLICT (package, version, repo)\nDO UPDATE SET filename=$5,size=$6,sha256=$7,mtime=$8,debtime=$9,section=$10,installed_size=$11,maintainer=$12,description=$13,features=$14\nRETURNING (xmax = 0) AS new",
   "describe": {
     "columns": [
       {
@@ -23,6 +23,7 @@
         "Text",
         "Int8",
         "Text",
+        "Text",
         "Text"
       ]
     },
@@ -30,5 +31,5 @@
       null
     ]
   },
-  "hash": "3eebbb9c5f04bcea5ebd279fda2408ce9a222a34e1701d23e8fbd1b539b10388"
+  "hash": "022d8f37a48f5c7eedbd8ab61797783a23fffd47c7577569e8637cf30014217b"
 }
