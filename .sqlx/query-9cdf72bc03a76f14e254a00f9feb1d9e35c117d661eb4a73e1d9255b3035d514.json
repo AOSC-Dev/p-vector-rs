@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.package AS name, p.version, min(p.architecture) arch,\n    min(p.filename) path, min(p.size) size, min(p.sha256) sha256,\n    min(p.section) section, min(p.installed_size) inst_size,\n    min(p.maintainer) maintainer, min(p.description) description,\n    json_agg(array[pd.relationship, pd.value]) dep\nFROM pv_packages p INNER JOIN pv_repos r ON p.repo=r.name\nLEFT JOIN pv_package_dependencies pd ON pd.package=p.package\nAND pd.version=p.version AND pd.repo=p.repo\nWHERE r.path=$1 AND p.debtime IS NOT NULL\nGROUP BY p.package, p.version, p.repo",
+  "query": "SELECT p.package AS name, p.version, min(p.architecture) arch,\n    min(p.filename) path, min(p.size) size, min(p.sha256) sha256,\n    min(p.section) section, min(p.installed_size) inst_size,\n    min(p.maintainer) maintainer, min(p.description) description, p.features features,\n    json_agg(array[pd.relationship, pd.value]) dep\nFROM pv_packages p INNER JOIN pv_repos r ON p.repo=r.name\nLEFT JOIN pv_package_dependencies pd ON pd.package=p.package\nAND pd.version=p.version AND pd.repo=p.repo\nWHERE r.path=$1 AND p.debtime IS NOT NULL\nGROUP BY p.package, p.version, p.repo",
   "describe": {
     "columns": [
       {
@@ -55,6 +55,11 @@
       },
       {
         "ordinal": 10,
+        "name": "features",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
         "name": "dep",
         "type_info": "Json"
       }
@@ -75,8 +80,9 @@
       null,
       null,
       null,
+      true,
       null
     ]
   },
-  "hash": "5be45eaa9f9e17923a9138c54775533dd65c257985dc51eb93ac07fdd7de7ffc"
+  "hash": "9cdf72bc03a76f14e254a00f9feb1d9e35c117d661eb4a73e1d9255b3035d514"
 }

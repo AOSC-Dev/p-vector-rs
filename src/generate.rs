@@ -37,6 +37,7 @@ struct PackageTemplate {
     sha256: Option<String>,
     description: Option<String>,
     dep: Option<Value>,
+    features: Option<String>,
 }
 
 #[derive(TemplateSimple)]
@@ -358,6 +359,7 @@ async fn render_packages_in_component_arch(
     let mut package_file = File::create(dist_path.join("Packages")).await?;
     let mut package_file_xz = XzEncoder::new(File::create(dist_path.join("Packages.xz")).await?);
     let rendered = spawn_blocking(move || PackagesTemplate { packages }.render_once()).await??;
+
     let results = tokio::join!(
         package_file.write_all(rendered.as_bytes()),
         package_file_xz.write_all(rendered.as_bytes())
@@ -383,7 +385,7 @@ pub async fn render_packages_in_component(
         r#"SELECT p.package AS name, p.version, min(p.architecture) arch,
     min(p.filename) path, min(p.size) size, min(p.sha256) sha256,
     min(p.section) section, min(p.installed_size) inst_size,
-    min(p.maintainer) maintainer, min(p.description) description,
+    min(p.maintainer) maintainer, min(p.description) description, p.features features,
     json_agg(array[pd.relationship, pd.value]) dep
 FROM pv_packages p INNER JOIN pv_repos r ON p.repo=r.name
 LEFT JOIN pv_package_dependencies pd ON pd.package=p.package
@@ -493,6 +495,7 @@ fn test_package_generate() {
         sha256: Some("sha256".to_string()),
         description: Some("description".to_string()),
         dep: None,
+        features: Some("core".to_string()),
     };
     let mut test_package_2 = test_package.clone();
     let rendered = PackagesTemplate {
@@ -512,6 +515,7 @@ Filename: path
 Size: 10
 SHA256: sha256
 Description: description
+X-AOSC-Features: core
 
 "#
     );
@@ -534,6 +538,7 @@ Size: 10
 SHA256: sha256
 Description: description
 Depends: test (=1)
+X-AOSC-Features: core
 
 "#
     );

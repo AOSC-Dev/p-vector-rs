@@ -59,6 +59,8 @@ struct DebMeta {
     inst_size: String,
     /// Maintainer
     maintainer: String,
+    /// Features
+    features: Option<String>,
     // Utility fields
     /// control.tar last modified time
     debtime: u64,
@@ -374,11 +376,12 @@ async fn save_package_to_db(
         package.repo.0
     );
     let result = sqlx::query!(
-        r#"INSERT INTO pv_packages VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, comparable_dpkgver($2))
+        r#"INSERT INTO pv_packages VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, comparable_dpkgver($2), $14)
 ON CONFLICT (package, version, repo)
-DO UPDATE SET filename=$5,size=$6,sha256=$7,mtime=$8,debtime=$9,section=$10,installed_size=$11,maintainer=$12,description=$13
+DO UPDATE SET filename=$5,size=$6,sha256=$7,mtime=$8,debtime=$9,section=$10,installed_size=$11,maintainer=$12,description=$13,features=$14
 RETURNING (xmax = 0) AS new"#,
-        meta.name, meta.version, repo, meta.arch, package.filename, package.size as i64, package.sha256, package.mtime as i32, meta.debtime as i32, meta.section, meta.inst_size.parse::<i64>().unwrap_or(0), meta.maintainer, meta.desc
+        meta.name, meta.version, repo, meta.arch, package.filename, package.size as i64, package.sha256, package.mtime as i32, meta.debtime as i32, meta.section, meta.inst_size.parse::<i64>().unwrap_or(0),
+        meta.maintainer, meta.desc, meta.features,
     ).fetch_one(&mut **pool).await?;
     if !result.new.unwrap_or(false) {
         warn!("{} is a duplicate!", package.filename);
@@ -668,6 +671,9 @@ fn open_deb_advanced<'a, R: Read + 'a>(
                 arch: must_have!(meta, "Architecture"),
                 inst_size: must_have!(meta, "Installed-Size"),
                 maintainer: must_have!(meta, "Maintainer"),
+                features: meta
+                    .remove("X-AOSC-Features".as_bytes())
+                    .map(|x| String::from_utf8_lossy(&x).to_string()),
                 extra: collect_left_over_fields(meta),
                 debtime,
             });
@@ -722,6 +728,15 @@ fn test_deb_adv() {
         &content.sha256,
         "6a7dd466854f6c1f4a597f0c547acf1f90d8298a04f4a2ca31f96a7c9dca8bc3"
     );
+    println!("{:?}", content);
+
+    let content = scan_single_deb_advanced(
+        "./tests/pool/tests/fixtures/aosc-aaa_11.6.0-1~pre20241017T062346Z_amd64.deb",
+        "./tests",
+    )
+    .unwrap();
+    assert_eq!(content.deb.features, Some("core".to_string()));
+
     println!("{:?}", content);
 }
 
