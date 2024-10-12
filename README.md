@@ -19,8 +19,9 @@ Multi repository, finding potential file collisions, checking shared object comp
 And you need a PostgreSQL server. You will need to deploy one on your device.
 
 ## Building Instructions
+
 1. Install both build and runtime dependencies
-2. Spin up the PostgreSQL server, it's recommended to create a separate database like this: `createdb <database_name>`
+2. Spin up the PostgreSQL server, it's recommended to create a offline database: `createdb <database_name>`; for details on how to configure a offline database, please refer to the full [setup guide](https://github.com/AOSC-Dev/p-vector-rs/blob/master/docs/setup-guide.md#setting-up-the-database)
 3. Type `cargo install sqlx-cli`
 4. Execute `export DATABASE_URL="postgres://localhost/<database_name>"`
 5. Execute `sqlx migrate run`
