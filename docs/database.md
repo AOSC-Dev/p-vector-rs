@@ -66,6 +66,8 @@ create table pv_packages
     description    text                         not null,
     -- compress version for sorting, see comparable_dpkgver function
     _vercomp       text                         not null,
+    -- deb X-AOSC-Features
+    features       text
     primary key (package, version, repo)
 );
 ```
