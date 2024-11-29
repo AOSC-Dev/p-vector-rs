@@ -94,7 +94,7 @@ pub fn sign_message_agent(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
     }
     let pubkey = keypair.unwrap().key();
     let ctx = Context::new()?;
-    let offloaded_keypair = KeyPair::new(&ctx, pubkey)?;
+    let offloaded_keypair = KeyPair::new_for_gnupg_context(&ctx, pubkey)?;
     let mut data_sink = Vec::new();
     let message = Message::new(&mut data_sink);
     let mut message = Signer::new(message, offloaded_keypair)

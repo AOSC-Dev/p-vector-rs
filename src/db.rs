@@ -111,9 +111,11 @@ pub async fn remove_packages_by_path<P: AsRef<Path>>(pool: &PgPool, path: &[P]) 
             "DELETE FROM pv_packages WHERE filename = $1 RETURNING repo",
             path.as_ref()
         )
-        .fetch_one(&mut *tx)
+        .fetch_optional(&mut *tx)
         .await?;
-        changed_repos.insert(p.repo);
+        if let Some(p) = p {
+            changed_repos.insert(p.repo);
+        }
     }
     for b in changed_repos {
         sqlx::query!("UPDATE pv_repos SET mtime=now() WHERE name = $1", b)
