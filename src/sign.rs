@@ -77,7 +77,9 @@ pub fn load_certificate<P: AsRef<Path>>(cert_path: P) -> Result<Cert> {
 }
 
 pub fn sign_message_agent(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
-    use sequoia_gpg_agent::gnupg::{Context, KeyPair};
+    use sequoia_gpg_agent::gnupg::Context;
+    use sequoia_gpg_agent::KeyPair;
+
     let policy = StandardPolicy::new();
     let keypair = cert
         .keys()

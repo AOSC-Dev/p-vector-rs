@@ -31,13 +31,13 @@ time = { version = "0.3", default-features = false, features = ["serde-human-rea
 secrecy = "0.10"
 sequoia-openpgp = { version = "^1", features = ["crypto-nettle"], default-features = false }
 memmap2 = "0.9"
-sequoia-gpg-agent = "0.4"
+sequoia-gpg-agent = "0.5"
 # parser implementations
 nom = "^7"
 toml = "0.8"
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
-goblin = "0.8"
+goblin = "0.9"
 # cli
 argh = "0.1"
 dialoguer = "0.11"
@@ -46,7 +46,7 @@ tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros",
 sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
 futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip", "xz", "zstd"] }
-redis = "0.27.3"
+redis = "0.27.5"
 zstd = "0.13.2"
 
 [target.'cfg(unix)'.dependencies]
