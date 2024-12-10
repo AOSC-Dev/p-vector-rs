@@ -7,7 +7,7 @@ Multi repository, finding potential file collisions, checking shared object comp
 -->
 
 ## Build Dependencies
-- Rust 1.76+
+- Rust 1.80+
 - Clang/LLVM
 - `pkg-config`
 
@@ -15,6 +15,7 @@ Multi repository, finding potential file collisions, checking shared object comp
 - OpenSSL (libcrypto) (`libssl-dev` in Debian 10)
 - LibLZMA (`liblzma-dev` in Debian 10)
 - Nettle (`nettle-dev` in Debian 10)
+- Redis or Redis protocol-compatible server
 
 And you need a PostgreSQL server. You will need to deploy one on your device.
 
