@@ -21,8 +21,11 @@ codename = "Hotfix"
 # Please export its public key using `gpg` and uncomment then edit the line below
 # certificate = "gpg:///etc/p-vector/sign.pubkey"
 certificate = "/etc/p-vector/sign.key"
-# Enable abbs data sync (AOSC-specific, if you are running a private repository, you should disable this)
-abbs_sync = true
+# Enable abbs data sync (AOSC-specific, also deprecated)
+abbs_sync = false
+# Include extra files in the `dist` folder
+# This can be useful if you run other add-on services using an APT repository
+# extra_dist_files = "/var/cache/p-vector/extra-dists/"
 
 [[branch]]
 # Branch name
