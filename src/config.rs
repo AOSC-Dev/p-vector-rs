@@ -60,6 +60,9 @@ pub fn lint_config(config: &Config) {
     if config.config.discover && !config.branch.is_empty() {
         warn!("Specifying any branch when auto-discover is enabled will only get their descriptions read.");
     }
+    if config.config.abbs_sync {
+        warn!("ABBS sync is deprecated and will be removed in a future version. Please remove the option.");
+    }
 }
 
 pub fn parse_config<P: AsRef<Path>>(path: P) -> Result<Config> {
