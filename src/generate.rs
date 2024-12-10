@@ -192,6 +192,27 @@ fn create_release_files(
     meta: &[BranchMeta],
     ttl: u64,
 ) -> Result<()> {
+    if let Some(ref extra_dist_files) = &config.extra_dist_files {
+        info!(
+            "Copying extra distribution files from {} to dist root ...",
+            extra_dist_files
+        );
+        let result = fs_extra::dir::copy(
+            extra_dist_files,
+            mirror_root.join("dists"),
+            &fs_extra::dir::CopyOptions {
+                overwrite: true,
+                ..fs_extra::dir::CopyOptions::default()
+            },
+        );
+        match result {
+            Ok(_) => info!("Extra distribution files copied successfully."),
+            Err(e) => {
+                error!("Failed to copy extra distribution files: {}", e);
+            }
+        }
+    }
+
     let cert = if let Some(cert) = &config.cert {
         info!("Signing release files using certificate: {}", cert);
         if let Some(cert) = cert.strip_prefix("gpg://") {

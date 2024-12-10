@@ -15,6 +15,7 @@ pub struct GeneralConfig {
     pub codename: String,
     certificate: Option<String>,
     pub abbs_sync: bool,
+    pub(crate) extra_dist_files: Option<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -38,6 +39,7 @@ pub struct ReleaseConfig {
     pub codename: String,
     pub descriptions: HashMap<String, String>,
     pub cert: Option<String>,
+    pub(crate) extra_dist_files: Option<String>,
 }
 
 pub fn convert_branch_description_config(config: &Config) -> ReleaseConfig {
@@ -53,6 +55,7 @@ pub fn convert_branch_description_config(config: &Config) -> ReleaseConfig {
         origin: default.origin.clone(),
         codename: default.codename.clone(),
         cert: default.certificate.clone(),
+        extra_dist_files: default.extra_dist_files.clone(),
     }
 }
 
