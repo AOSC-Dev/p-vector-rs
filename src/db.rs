@@ -144,12 +144,3 @@ pub async fn refresh_views(pool: &PgPool) -> Result<()> {
 
     Ok(())
 }
-
-/// Load sqlite_fdw extension (external binary)
-pub async fn load_fdw_ext(pool: &PgPool) -> Result<()> {
-    sqlx::query!("CREATE EXTENSION IF NOT EXISTS sqlite_fdw")
-        .execute(pool)
-        .await?;
-
-    Ok(())
-}
