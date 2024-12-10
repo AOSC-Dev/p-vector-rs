@@ -41,7 +41,7 @@ pub fn redis_connect(ipc_address: &str) -> Result<Connection> {
 
 pub fn publish_pv_messages(messages: &[PVMessage], conn: &mut Connection) -> Result<()> {
     let serialized = serde_json::to_string(&messages)?;
-    conn.publish("p-vector-publish", serialized)?;
+    conn.publish::<_, _, ()>("p-vector-publish", serialized)?;
 
     Ok(())
 }
