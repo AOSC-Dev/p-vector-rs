@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REFRESH MATERIALIZED VIEW v_so_breaks",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "0b2e0a7ba7c400b0951547abf0a0947cd6f51af57f38f4c91d0c1a047843c13e"
+}

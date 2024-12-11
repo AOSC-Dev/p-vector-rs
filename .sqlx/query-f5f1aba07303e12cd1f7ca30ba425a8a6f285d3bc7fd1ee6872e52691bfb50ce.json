@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "CREATE EXTENSION IF NOT EXISTS sqlite_fdw",
+  "query": "REFRESH MATERIALIZED VIEW v_packages_new",
   "describe": {
     "columns": [],
     "parameters": {
@@ -8,5 +8,5 @@
     },
     "nullable": []
   },
-  "hash": "f81757b4a592e24d5dec87163b83a4a5d4dfc225b9bdb007685e03212ffcc404"
+  "hash": "f5f1aba07303e12cd1f7ca30ba425a8a6f285d3bc7fd1ee6872e52691bfb50ce"
 }
