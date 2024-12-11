@@ -202,6 +202,7 @@ fn create_release_files(
             mirror_root.join("dists"),
             &fs_extra::dir::CopyOptions {
                 overwrite: true,
+                copy_inside: true,
                 ..fs_extra::dir::CopyOptions::default()
             },
         );
