@@ -96,11 +96,16 @@ fn scan_single_release_file(branch_root: &Path, path: &Path) -> Result<(String, 
 }
 
 fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> {
-    let walk = walkdir::WalkDir::new(branch_root).min_depth(2).into_iter();
+    let walk = walkdir::WalkDir::new(branch_root).min_depth(1).into_iter();
     let mut files_to_scan = Vec::new();
     for entry in walk {
         let entry = entry?;
-        if entry.file_type().is_dir() || entry.file_name().to_string_lossy().starts_with('.') {
+        // TODO: figure out a better way to ignore to-be-generated files
+        let filename = entry.file_name().to_string_lossy();
+        if entry.file_type().is_dir()
+            || filename.starts_with('.')
+            || filename.starts_with("InRelease")
+        {
             continue;
         }
         files_to_scan.push(entry.path().to_owned());
@@ -203,6 +208,7 @@ fn create_release_files(
             &fs_extra::dir::CopyOptions {
                 overwrite: true,
                 copy_inside: true,
+                content_only: true,
                 ..fs_extra::dir::CopyOptions::default()
             },
         );
