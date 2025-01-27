@@ -10,7 +10,7 @@ use async_compression::tokio::write::{GzipEncoder, XzEncoder, ZstdEncoder};
 use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
 use nom::sequence::preceded;
-use nom::IResult;
+use nom::{IResult, Parser};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use sailfish::TemplateSimple;
 use serde_json::Value;
@@ -76,11 +76,11 @@ fn skip_header(input: &[u8]) -> IResult<&[u8], &[u8]> {
 }
 
 fn skip_other(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    preceded(skip_header, match_valid_until)(input)
+    preceded(skip_header, match_valid_until).parse(input)
 }
 
 fn parse_valid_date(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    preceded(skip_other, take_until("\n"))(input)
+    preceded(skip_other, take_until("\n")).parse(input)
 }
 
 fn scan_single_release_file(branch_root: &Path, path: &Path) -> Result<(String, u64, String)> {
