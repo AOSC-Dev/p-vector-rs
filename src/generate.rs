@@ -258,11 +258,14 @@ pub async fn render_releases(
         regenerate_set.insert(r);
     }
 
-    let branches = get_branch_metadata(pool).await?;
-    let branches = branches
-        .into_iter()
-        .filter(|branch| regenerate_set.contains(&branch.branch))
-        .collect::<Vec<_>>();
+    let mut branches = get_branch_metadata(pool).await?;
+    // Re-generate all branches un-conditionally if extra dist files are provided
+    if config.extra_dist_files.is_none() {
+        branches = branches
+            .into_iter()
+            .filter(|branch| regenerate_set.contains(&branch.branch))
+            .collect::<Vec<_>>();
+    }
     let mirror_root = mirror_root.to_owned();
     spawn_blocking(move || create_release_files(&mirror_root, &config, &branches, 10)).await??;
 
