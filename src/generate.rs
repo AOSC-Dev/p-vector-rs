@@ -96,7 +96,7 @@ fn scan_single_release_file(branch_root: &Path, path: &Path) -> Result<(String, 
 }
 
 fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> {
-    let walk = walkdir::WalkDir::new(branch_root).min_depth(1).into_iter();
+    let walk = walkdir::WalkDir::new(branch_root).min_depth(0).into_iter();
     let mut files_to_scan = Vec::new();
     for entry in walk {
         let entry = entry?;
@@ -105,6 +105,7 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
         if entry.file_type().is_dir()
             || filename.starts_with('.')
             || filename.starts_with("InRelease")
+            || filename.starts_with("DEPRECATED")
         {
             continue;
         }
