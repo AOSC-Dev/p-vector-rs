@@ -115,8 +115,24 @@ async fn maintenance_action(pool: &PgPool) -> Result<()> {
 }
 
 async fn gc_action(config: &config::Config, pool: &PgPool) -> Result<()> {
-    let mirror_root = Path::new(&config.config.path);
-    gc::run_gc(pool, mirror_root).await?;
+    let mirror_root = Path::new(&config.config.path).to_path_buf();
+    gc::run_gc(pool, &mirror_root).await?;
+    if let Some(acquire_by_hash) = &config.config.acquire_by_hash {
+        let acquire_by_hash = *acquire_by_hash;
+        tokio::task::spawn_blocking(move || {
+            for i in walkdir::WalkDir::new(mirror_root.join("dists"))
+                .min_depth(1)
+                .max_depth(1)
+            {
+                if let Ok(entry) = i {
+                    if entry.file_type().is_dir() {
+                        gc::clean_by_hash_files(entry.path(), acquire_by_hash).ok();
+                    }
+                }
+            }
+        })
+        .await?;
+    }
 
     Ok(())
 }
@@ -152,8 +168,7 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
         let tempdir_path = tempdir_path.clone();
         let tempdir_path_clone = tempdir_path.clone();
         tasks.push(Either::Left(async move {
-            generate::render_packages_in_component(pool, &name, &tempdir_path)
-                .await
+            generate::render_packages_in_component(pool, &name, &tempdir_path).await
         }));
         tasks.push(Either::Right(async move {
             generate::render_contents_in_component(pool, &name_clone, &tempdir_path_clone).await

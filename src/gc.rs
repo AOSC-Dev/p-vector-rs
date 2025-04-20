@@ -53,6 +53,55 @@ WHERE pv_repos.name = deleted_branches.name"
     Ok(())
 }
 
+pub fn clean_by_hash_files(branch_root: &Path, copies_to_keep: isize) -> Result<()> {
+    if copies_to_keep < 0 {
+        return Ok(());
+    }
+
+    let mut last_count = 0usize;
+    for entry in walkdir::WalkDir::new(&branch_root) {
+        if let Ok(entry) = entry {
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            if !entry
+                .path()
+                .parent()
+                .map(|p| p.ends_with("by-hash/SHA256"))
+                .unwrap_or_default()
+            {
+                last_count += 1;
+            }
+        }
+    }
+
+    let keep_count = (copies_to_keep as usize) * last_count;
+    let mut byhash_files = Vec::new();
+    let byhash_path = branch_root.join("by-hash/SHA256");
+    for entry in walkdir::WalkDir::new(&byhash_path) {
+        if let Ok(entry) = entry {
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            byhash_files.push((entry.metadata()?.modified()?, entry.path().to_path_buf()));
+        }
+    }
+
+    let num_files = byhash_files.len();
+    if num_files <= keep_count {
+        return Ok(());
+    }
+    byhash_files.sort_unstable_by(|a, b| b.0.cmp(&a.0));
+    for i in 0..(num_files - keep_count) {
+        let (_, path) = &byhash_files[i];
+        if let Err(e) = std::fs::remove_file(path) {
+            error!("Failed to remove by-hash file {}: {}", path.display(), e);
+        }
+    }
+
+    Ok(())
+}
+
 /// Execute garbage collection
 pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()> {
     info!("Deleting duplicated and stale entries from the database ...");
@@ -69,7 +118,7 @@ pub async fn run_gc<P: AsRef<Path>>(pool: &PgPool, mirror_root: P) -> Result<()>
         .collect::<Vec<_>>();
     // exit early if no changes
     if to_remove.is_empty() {
-        info!("Nothing to do.");
+        info!("No stale branch to remove.");
         return Ok(());
     }
     info!(
