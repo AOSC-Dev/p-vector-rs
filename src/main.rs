@@ -130,6 +130,11 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     let mut tasks = Vec::new();
     let tempdir = tempfile::tempdir()?;
     let tempdir_path = tempdir.path().to_owned();
+    let use_acquire_by_hash = config
+        .config
+        .acquire_by_hash
+        .map(|v| v != 0)
+        .unwrap_or_default();
     for topic in topics {
         let mut skip = true;
         for t in needs_regenerate.iter() {
@@ -147,7 +152,8 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
         let tempdir_path = tempdir_path.clone();
         let tempdir_path_clone = tempdir_path.clone();
         tasks.push(Either::Left(async move {
-            generate::render_packages_in_component(pool, &name, &tempdir_path).await
+            generate::render_packages_in_component(pool, &name, &tempdir_path)
+                .await
         }));
         tasks.push(Either::Right(async move {
             generate::render_contents_in_component(pool, &name_clone, &tempdir_path_clone).await
@@ -176,7 +182,14 @@ async fn release_action(config: &config::Config, pool: &PgPool) -> Result<()> {
         )
     })
     .await??;
-    generate::render_releases(pool, &mirror_root_clone, release_config, &needs_regenerate).await?;
+    generate::render_releases(
+        pool,
+        &mirror_root_clone,
+        release_config,
+        &needs_regenerate,
+        use_acquire_by_hash,
+    )
+    .await?;
     info!("Generation finished.");
 
     Ok(())

@@ -16,6 +16,7 @@ pub struct GeneralConfig {
     certificate: Option<String>,
     pub abbs_sync: bool,
     pub(crate) extra_dist_files: Option<String>,
+    pub acquire_by_hash: Option<isize>,
 }
 
 #[derive(Deserialize, Clone)]

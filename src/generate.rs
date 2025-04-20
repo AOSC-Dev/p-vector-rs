@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use async_compression::tokio::write::{GzipEncoder, XzEncoder, ZstdEncoder};
 use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
@@ -48,7 +48,7 @@ struct PackagesTemplate {
 
 #[derive(TemplateSimple)]
 #[template(path = "InRelease.stpl")]
-struct InReleaseTemplate {
+struct InReleaseTemplate<'a> {
     origin: String,
     label: String,
     codename: String,
@@ -58,7 +58,8 @@ struct InReleaseTemplate {
     valid_until: String,
     architectures: Vec<String>,
     components: Vec<String>,
-    files: Vec<(String, u64, String)>,
+    files: &'a [(String, u64, String)],
+    acquire_by_hash: bool,
 }
 
 struct BranchMeta {
@@ -109,6 +110,15 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
         {
             continue;
         }
+        // HACK: force ignore by-hash files
+        if entry
+            .path()
+            .parent()
+            .map(|p| p.ends_with("by-hash/SHA256"))
+            .unwrap_or_default()
+        {
+            continue;
+        }
         files_to_scan.push(entry.path().to_owned());
     }
     let files = files_to_scan
@@ -125,12 +135,48 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
     Ok(files)
 }
 
+fn swap_for_acquire_by_hash(branch_root: &Path, files: &[(String, u64, String)]) -> Result<()> {
+    let byhash_dir = branch_root.join("by-hash/SHA256");
+    std::fs::create_dir_all(&byhash_dir)?;
+    for (path, _, sha256) in files {
+        swap_file_for_acquire_by_hash(&branch_root, path, sha256)?;
+    }
+
+    Ok(())
+}
+
+fn swap_file_for_acquire_by_hash(
+    branch_root: &std::path::Path,
+    path: &str,
+    sha256: &str,
+) -> Result<()> {
+    let byhash_path = Path::new("by-hash/SHA256").join(sha256);
+    let source_path = Path::new(path);
+    std::fs::copy(
+        branch_root.join(source_path),
+        branch_root.join(&byhash_path),
+    )?;
+    // due to how `copy` is implemented in Rust standard library, we cannot create symbolic links here
+    // let depth = source_path.components().count().saturating_sub(1);
+    // let mut relative_byhash_path = std::path::PathBuf::new();
+    // for _ in 0..depth {
+    //     relative_byhash_path.push("..");
+    // }
+    // std::os::unix::fs::symlink(
+    //     relative_byhash_path.join(byhash_path),
+    //     branch_root.join(source_path),
+    // )?;
+
+    Ok(())
+}
+
 fn create_release_file(
     mirror_root: &Path,
     config: &ReleaseConfig,
     m: &BranchMeta,
     ttl: u64,
     cert: &Option<(sequoia_openpgp::Cert, bool)>,
+    use_acquire_by_hash: bool,
 ) -> Result<()> {
     use std::fs::File as StdFile;
 
@@ -154,6 +200,7 @@ fn create_release_file(
     let system_time = time::OffsetDateTime::from_unix_timestamp(system_time.try_into().unwrap())?;
     let projected_timestamp =
         time::OffsetDateTime::from_unix_timestamp(projected_timestamp.try_into().unwrap())?;
+    let release_files = release_files.unwrap();
 
     let rendered = (InReleaseTemplate {
         origin: config.origin.clone(),
@@ -165,14 +212,21 @@ fn create_release_file(
         valid_until: projected_timestamp.format(&Rfc2822)?,
         architectures: m.arch.as_ref().unwrap().to_vec(),
         components: m.comp.as_ref().unwrap().to_vec(),
-        files: release_files.unwrap(),
+        files: &release_files,
+        acquire_by_hash: use_acquire_by_hash,
     })
     .render_once();
     if let Err(e) = rendered {
         error!("Failed to generate release: {:?}", e);
         return Ok(());
     }
+    if use_acquire_by_hash {
+        swap_for_acquire_by_hash(&branch_root, &release_files)
+            .context("Failed to swap files for acquire by hash")?;
+    }
     let rendered = rendered.unwrap();
+    let mut f: StdFile;
+    let name: std::path::PathBuf;
     if let Some(ref cert) = cert {
         // TODO: don't fail when signing failed
         let signed = if !cert.1 {
@@ -181,12 +235,21 @@ fn create_release_file(
         } else {
             sign_message_agent(&cert.0, rendered.as_bytes())?
         };
-        let mut f = StdFile::create(branch_root.join("InRelease"))?;
+        name = branch_root.join("InRelease");
+        f = StdFile::create(&name)?;
         f.write_all(&signed)?;
     } else {
         warn!("Certificate not found or not available. Release file not signed.");
-        let mut f = StdFile::create(branch_root.join("Release"))?;
+        name = branch_root.join("Release");
+        f = StdFile::create(&name)?;
         f.write_all(rendered.as_bytes())?;
+    }
+
+    if use_acquire_by_hash {
+        let f = StdFile::open(&name)?;
+        let sha256 = sha256sum(&f)?;
+        let raw_filename = name.file_name().unwrap();
+        swap_file_for_acquire_by_hash(&branch_root, &raw_filename.to_string_lossy(), &sha256)?;
     }
 
     Ok(())
@@ -197,6 +260,7 @@ fn create_release_files(
     config: &ReleaseConfig,
     meta: &[BranchMeta],
     ttl: u64,
+    use_acquire_by_hash: bool,
 ) -> Result<()> {
     if let Some(ref extra_dist_files) = &config.extra_dist_files {
         info!(
@@ -234,7 +298,9 @@ fn create_release_files(
     };
 
     meta.par_iter().for_each_with(cert, |cert, meta| {
-        if let Err(e) = create_release_file(mirror_root, config, meta, ttl, cert) {
+        if let Err(e) =
+            create_release_file(mirror_root, config, meta, ttl, cert, use_acquire_by_hash)
+        {
             warn!("Failed to create release file: {}", e);
         }
     });
@@ -251,6 +317,7 @@ pub async fn render_releases(
     mirror_root: &Path,
     config: ReleaseConfig,
     regenerate_list: &[String],
+    use_acquire_by_hash: bool,
 ) -> Result<()> {
     let mut regenerate_set = HashSet::new();
     regenerate_set.reserve(regenerate_list.len());
@@ -267,7 +334,10 @@ pub async fn render_releases(
             .collect::<Vec<_>>();
     }
     let mirror_root = mirror_root.to_owned();
-    spawn_blocking(move || create_release_files(&mirror_root, &config, &branches, 10)).await??;
+    spawn_blocking(move || {
+        create_release_files(&mirror_root, &config, &branches, 10, use_acquire_by_hash)
+    })
+    .await??;
 
     Ok(())
 }

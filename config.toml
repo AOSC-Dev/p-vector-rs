@@ -27,6 +27,10 @@ abbs_sync = false
 # This can be useful if you run other add-on services using an APT repository
 # extra_dist_files = "/var/cache/p-vector/extra-dists/"
 
+# Enable acquire by hash mechanism. To disable, set this value to 0.
+# To allow keeping unlimited number of Package file, set this value to -1.
+acquire_by_hash = 5
+
 [[branch]]
 # Branch name
 name = "stable"
