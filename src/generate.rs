@@ -152,10 +152,23 @@ fn swap_file_for_acquire_by_hash(
 ) -> Result<()> {
     let byhash_path = Path::new("by-hash/SHA256").join(sha256);
     let source_path = Path::new(path);
-    std::fs::copy(
-        branch_root.join(source_path),
-        branch_root.join(&byhash_path),
-    )?;
+    let source_full_path = branch_root.join(source_path);
+    // HACK: remove the very large uncompressed Contents-* files
+    if source_path
+        .file_name()
+        .map(|f| {
+            let filename = &f.to_string_lossy();
+            filename.starts_with("Contents-") && !filename.contains('.')
+        })
+        .unwrap_or_default()
+    {
+        std::fs::remove_file(source_full_path).ok();
+    } else {
+        std::fs::copy(
+            branch_root.join(source_path),
+            branch_root.join(&byhash_path),
+        )?;
+    }
     // due to how `copy` is implemented in Rust standard library, we cannot create symbolic links here
     // let depth = source_path.components().count().saturating_sub(1);
     // let mut relative_byhash_path = std::path::PathBuf::new();
