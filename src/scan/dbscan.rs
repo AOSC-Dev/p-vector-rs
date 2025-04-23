@@ -147,6 +147,7 @@ pub fn collect_removed_packages(removed: SegQueue<PathBuf>, mirror_root: &Path) 
 }
 
 /// Validate if the records in the database are up to date with the packages
+#[allow(clippy::type_complexity)]
 pub fn validate_packages<P: AsRef<Path>>(
     root: P,
     packages: &[db::PVPackage],

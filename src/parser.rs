@@ -42,6 +42,7 @@ fn single_package(input: &[u8]) -> IResult<&[u8], Vec<(&[u8], &[u8])>> {
 }
 
 #[inline]
+#[allow(clippy::type_complexity)]
 pub fn single_package_map(input: &[u8]) -> IResult<&[u8], HashMap<&[u8], &[u8]>> {
     let mut map = HashMap::new();
     let (ret, res) = single_package(input)?;
