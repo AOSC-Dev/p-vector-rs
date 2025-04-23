@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use nom::{
+    IResult, Parser,
     bytes::complete::{tag, take_until},
     character::complete::{char, space0},
     combinator::{map, verify},
     multi::many1,
     sequence::{separated_pair, terminated},
-    IResult, Parser,
 };
 
 #[inline]

@@ -61,10 +61,14 @@ pub fn convert_branch_description_config(config: &Config) -> ReleaseConfig {
 
 pub fn lint_config(config: &Config) {
     if config.config.discover && !config.branch.is_empty() {
-        warn!("Specifying any branch when auto-discover is enabled will only get their descriptions read.");
+        warn!(
+            "Specifying any branch when auto-discover is enabled will only get their descriptions read."
+        );
     }
     if config.config.abbs_sync {
-        warn!("ABBS sync is deprecated and will be removed in a future version. Please remove the option.");
+        warn!(
+            "ABBS sync is deprecated and will be removed in a future version. Please remove the option."
+        );
     }
 }
 

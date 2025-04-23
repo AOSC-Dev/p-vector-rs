@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use ar::Archive as ArArchive;
 use faster_hex::hex_string;
 use flate2::read::GzDecoder;

@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Error, Result, anyhow};
 use async_compression::tokio::write::{GzipEncoder, XzEncoder, ZstdEncoder};
 use log::{error, info, warn};
 use nom::bytes::complete::{tag, take_until};
@@ -16,7 +16,7 @@ use sailfish::TemplateSimple;
 use serde_json::Value;
 use sqlx::PgPool;
 use time::{format_description::well_known::Rfc2822, macros::offset};
-use tokio::fs::{create_dir_all, metadata, File};
+use tokio::fs::{File, create_dir_all, metadata};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::task::spawn_blocking;
 

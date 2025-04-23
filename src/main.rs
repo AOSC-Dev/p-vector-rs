@@ -187,8 +187,8 @@ async fn reset_action(pool: &PgPool) -> Result<()> {
 }
 
 fn ask_for_key_info() -> Result<String> {
-    use dialoguer::theme::ColorfulTheme;
     use dialoguer::Input;
+    use dialoguer::theme::ColorfulTheme;
 
     let name: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Your name")
@@ -203,7 +203,7 @@ fn ask_for_key_info() -> Result<String> {
 async fn generate_key(config: &str) -> Result<()> {
     use secrecy::ExposeSecret;
     use time::OffsetDateTime;
-    use tokio::fs::{create_dir_all, File};
+    use tokio::fs::{File, create_dir_all};
     use tokio::io::AsyncWriteExt;
 
     let userid = spawn_blocking(ask_for_key_info).await??;

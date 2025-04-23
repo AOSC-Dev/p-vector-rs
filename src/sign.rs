@@ -1,9 +1,9 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use openpgp::cert::{Cert, CertBuilder};
 use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
-use openpgp::serialize::stream::{Message, Signer};
 use openpgp::serialize::SerializeInto;
+use openpgp::serialize::stream::{Message, Signer};
 use openpgp::types::KeyFlags;
 use sailfish::TemplateSimple;
 use secrecy::SecretSlice;
@@ -77,8 +77,8 @@ pub fn load_certificate<P: AsRef<Path>>(cert_path: P) -> Result<Cert> {
 }
 
 pub fn sign_message_agent(cert: &Cert, content: &[u8]) -> Result<Vec<u8>> {
-    use sequoia_gpg_agent::gnupg::Context;
     use sequoia_gpg_agent::KeyPair;
+    use sequoia_gpg_agent::gnupg::Context;
 
     let policy = StandardPolicy::new();
     let keypair = cert

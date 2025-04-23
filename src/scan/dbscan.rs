@@ -1,6 +1,6 @@
 //! Advanced database-based scanning.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use crossbeam_queue::SegQueue;
 use log::{error, info, warn};
 use rayon::prelude::*;
@@ -15,9 +15,9 @@ use std::{fs::Metadata, path::Component};
 
 use crate::db;
 use crate::ipc::PVMessage;
-use crate::scan::{determine_format, open_compressed_control, ArArchive, TarArchive};
+use crate::scan::{ArArchive, TarArchive, determine_format, open_compressed_control};
 
-use super::{mtime, read_compressed, HashedReader, TarFormat};
+use super::{HashedReader, TarFormat, mtime, read_compressed};
 
 macro_rules! must_have {
     ($map:ident, $name:expr) => {{
@@ -405,10 +405,9 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
     // update dependencies information
     for dep in PKG_RELATION {
         if let Some(d) = meta.extra.get(dep.as_bytes()) {
-            let value =
-                std::str::from_utf8(d)
-                    .ok()
-                    .and_then(|x| if x.is_empty() { None } else { Some(x) });
+            let value = std::str::from_utf8(d)
+                .ok()
+                .and_then(|x| if x.is_empty() { None } else { Some(x) });
             if let Some(value) = value {
                 sqlx::query!(
                     "INSERT INTO pv_package_dependencies VALUES($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT pv_package_dependencies_pkey DO UPDATE SET value = $5",
@@ -475,7 +474,7 @@ fn get_branch_name<P: AsRef<Path>>(rel_path: P) -> Result<(String, String)> {
                 return Err(anyhow!(
                     "Unexpected path component: {}",
                     rel_path.as_ref().display()
-                ))
+                ));
             }
         };
         if let Some(branch) = branch {
@@ -673,7 +672,7 @@ fn open_deb_advanced<'a, R: Read + 'a>(
                 maintainer: must_have!(meta, "Maintainer"),
                 features: meta
                     .remove("X-AOSC-Features".as_bytes())
-                    .map(|x| String::from_utf8_lossy(&x).to_string()),
+                    .map(|x| String::from_utf8_lossy(x).to_string()),
                 extra: collect_left_over_fields(meta),
                 debtime,
             });
