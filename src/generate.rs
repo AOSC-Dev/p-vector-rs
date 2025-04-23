@@ -173,7 +173,7 @@ fn create_release_file(
         return Ok(());
     }
     let rendered = rendered.unwrap();
-    if let Some(ref cert) = cert {
+    if let Some(cert) = cert {
         // TODO: don't fail when signing failed
         let signed = if !cert.1 {
             // if the key is not offloaded
@@ -198,7 +198,7 @@ fn create_release_files(
     meta: &[BranchMeta],
     ttl: u64,
 ) -> Result<()> {
-    if let Some(ref extra_dist_files) = &config.extra_dist_files {
+    if let Some(extra_dist_files) = &config.extra_dist_files {
         info!(
             "Copying extra distribution files from {} to dist root ...",
             extra_dist_files
