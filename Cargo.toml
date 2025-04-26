@@ -1,6 +1,6 @@
 [package]
 name = "p-vector"
-version = "0.8.0"
+version = "0.10.0"
 license = "LGPL-3.0-or-later"
 authors = ["liushuyu <liushuyu011@gmail.com>"]
 description = "A database-backed APT archive manager"
