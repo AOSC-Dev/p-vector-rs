@@ -136,8 +136,6 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
 }
 
 fn swap_for_acquire_by_hash(branch_root: &Path, files: &[(String, u64, String)]) -> Result<()> {
-    let byhash_dir = branch_root.join("by-hash/SHA256");
-    std::fs::create_dir_all(&byhash_dir)?;
     for (path, _, sha256) in files {
         swap_file_for_acquire_by_hash(&branch_root, path, sha256)?;
     }
@@ -150,7 +148,6 @@ fn swap_file_for_acquire_by_hash(
     path: &str,
     sha256: &str,
 ) -> Result<()> {
-    let byhash_path = Path::new("by-hash/SHA256").join(sha256);
     let source_path = Path::new(path);
     let source_full_path = branch_root.join(source_path);
     // HACK: remove the very large uncompressed Contents-* files
@@ -164,8 +161,16 @@ fn swap_file_for_acquire_by_hash(
     {
         std::fs::remove_file(source_full_path).ok();
     } else {
+        // the location logic is a bit weird, see:
+        // https://github.com/Debian/apt/blob/3e6de9c26e0e32e417629d8d5b90343e94b85ab6/apt-pkg/acquire-item.cc#L483
+        let byhash_dir = source_full_path
+            .parent()
+            .map(|p| p.join("by-hash/SHA256"))
+            .ok_or_else(|| anyhow!("no parent directory"))?;
+        let byhash_path = byhash_dir.join(sha256);
+        std::fs::create_dir_all(&byhash_dir)?;
         std::fs::copy(
-            branch_root.join(source_path),
+            branch_root.join(source_full_path),
             branch_root.join(&byhash_path),
         )?;
     }
