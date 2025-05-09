@@ -53,12 +53,39 @@ WHERE pv_repos.name = deleted_branches.name"
     Ok(())
 }
 
+fn clean_by_hash_files_inner(byhash_path: &Path, files_to_keep: usize) -> Result<()> {
+    let mut byhash_files = Vec::new();
+    for entry in walkdir::WalkDir::new(&byhash_path) {
+        if let Ok(entry) = entry {
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            byhash_files.push((entry.metadata()?.modified()?, entry.path().to_path_buf()));
+        }
+    }
+
+    let num_files = byhash_files.len();
+    if num_files <= files_to_keep {
+        return Ok(());
+    }
+    byhash_files.sort_unstable_by(|a, b| b.0.cmp(&a.0));
+    for i in 0..(num_files - files_to_keep) {
+        let (_, path) = &byhash_files[i];
+        if let Err(e) = std::fs::remove_file(path) {
+            error!("Failed to remove by-hash file {}: {}", path.display(), e);
+        }
+    }
+
+    Ok(())
+}
+
 pub fn clean_by_hash_files(branch_root: &Path, copies_to_keep: isize) -> Result<()> {
     if copies_to_keep < 0 {
         return Ok(());
     }
 
     let mut last_count = 0usize;
+    // try to guess how many files should be kept
     for entry in walkdir::WalkDir::new(&branch_root) {
         if let Ok(entry) = entry {
             if !entry.file_type().is_file() {
@@ -75,27 +102,16 @@ pub fn clean_by_hash_files(branch_root: &Path, copies_to_keep: isize) -> Result<
         }
     }
 
-    let keep_count = (copies_to_keep as usize) * last_count;
-    let mut byhash_files = Vec::new();
-    let byhash_path = branch_root.join("by-hash/SHA256");
-    for entry in walkdir::WalkDir::new(&byhash_path) {
+    let files_to_keep = last_count * (copies_to_keep as usize);
+    // execute the clean-up
+    for entry in walkdir::WalkDir::new(&branch_root) {
         if let Ok(entry) = entry {
-            if !entry.file_type().is_file() {
+            if !entry.file_type().is_dir() {
                 continue;
             }
-            byhash_files.push((entry.metadata()?.modified()?, entry.path().to_path_buf()));
-        }
-    }
-
-    let num_files = byhash_files.len();
-    if num_files <= keep_count {
-        return Ok(());
-    }
-    byhash_files.sort_unstable_by(|a, b| b.0.cmp(&a.0));
-    for i in 0..(num_files - keep_count) {
-        let (_, path) = &byhash_files[i];
-        if let Err(e) = std::fs::remove_file(path) {
-            error!("Failed to remove by-hash file {}: {}", path.display(), e);
+            if entry.path().ends_with("by-hash/SHA256") {
+                clean_by_hash_files_inner(entry.path(), files_to_keep)?;
+            }
         }
     }
 
