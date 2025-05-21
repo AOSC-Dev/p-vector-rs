@@ -103,6 +103,7 @@ pub fn clean_by_hash_files(branch_root: &Path, copies_to_keep: isize) -> Result<
     }
 
     let files_to_keep = last_count * (copies_to_keep as usize);
+    info!("Keeping {} by-hash files in the branches", files_to_keep);
     // execute the clean-up
     for entry in walkdir::WalkDir::new(&branch_root) {
         if let Ok(entry) = entry {
