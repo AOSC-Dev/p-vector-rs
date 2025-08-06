@@ -167,7 +167,10 @@ pub fn discover_topics_components<P: AsRef<Path>>(path: P) -> Result<Vec<PathBuf
 /// Walk through all the packages in a repository (no scanning)
 pub fn collect_all_packages<P: AsRef<Path>>(path: P) -> Result<Vec<DirEntry>> {
     let mut files = Vec::with_capacity(1000);
-    for entry in WalkDir::new(path.as_ref()) {
+    for entry in WalkDir::new(path.as_ref())
+        .into_iter()
+        .filter_entry(|v| !v.file_name().to_string_lossy().starts_with('.'))
+    {
         let entry = entry?;
         if is_deb(&entry) {
             files.push(entry);
