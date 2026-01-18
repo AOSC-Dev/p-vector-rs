@@ -599,20 +599,21 @@ fn collect_files<R: Read>(reader: R) -> Result<PackageContents> {
             gname: header.groupname_bytes().map(|x| x.to_owned()),
         });
         // ================= ELF processing
-        // find so provides and requires
         //
-        // so provides are collected from file names instead of SONAME, because
-        // there are cases when the shared library has no SONAME e.g.
-        // libardourcp.so, libautofs.so and some shared libraries deliberately
-        // uses a SONAME that differs from its name, e.g. cuda stub libcuda.so
-        // has SONAME libcuda.so.1 which resides in nvidia driver
+        // Find so provides and requires
         //
-        // so requires are collected from DT_NEEDED of ELF files in the future,
-        // we may want to handle dlopen-ed libraries
-
-        // for symlinks, we skip the expensive symlink resolving process and
-        // check whether it is a shared library by its name
-        // otherwise, we will also verify that it is in ELF format
+        // ELF .so provides are collected from file names instead of SONAME, because
+        // there are cases when the shared library has no SONAME e.g. libardourcp.so
+        // and libautofs.so. Some shared libraries deliberately uses a SONAME that
+        // differs from its name, e.g. CUDA's stub libcuda.so has SONAME libcuda.so.1,
+        // which resides in the NVIDIA driver.
+        //
+        // ELF .so requires are collected from DT_NEEDED of ELF files. In the future,
+        // we may want to handle dlopen-ed libraries.
+        //
+        // For symlinks, we skip the expensive symlink resolving process and check
+        // whether it is a shared library by its name. Otherwise, we will also verify
+        // that it is in ELF format.
         if is_shared_object(&entry.path_bytes()) && header.entry_type().is_symlink() {
             let path = entry.path();
             if let Ok(path) = path {
