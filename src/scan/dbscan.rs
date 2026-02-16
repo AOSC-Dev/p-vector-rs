@@ -41,6 +41,7 @@ const PKG_RELATION: &[&str] = &[
     "Conflicts",
     "Provides",
     "Replaces",
+    "Multi-Arch",
 ];
 
 #[derive(Debug)]
