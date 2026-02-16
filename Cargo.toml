@@ -22,7 +22,7 @@ flate2 = "^1"
 anyhow = "^1"
 sha2 = "0.10"
 rayon = "^1"
-sailfish = "0.9"
+sailfish = "0.10"
 faster-hex = "0.10"
 crossbeam-queue = "0.3"
 tempfile = "^3"
@@ -34,23 +34,23 @@ memmap2 = "0.9"
 sequoia-gpg-agent = "0.6"
 # parser implementations
 nom = "^8"
-toml = "0.9"
+toml = "1.0"
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
 goblin = "0.10"
 # cli
 argh = "0.1"
-dialoguer = "0.11"
+dialoguer = "0.12"
 # async and database
 tokio = { version = "^1", features = ["rt", "rt-multi-thread", "time", "macros", "fs"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "macros", "postgres", "chrono", "migrate", "json"] }
 futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip", "xz", "zstd"] }
-redis = "0.32"
+redis = "1.0"
 zstd = "0.13"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.30", features = ["fs"] }
+nix = { version = "0.31", features = ["fs"] }
 sd-notify = { version = "0.4", optional = true }
 
 [features]
