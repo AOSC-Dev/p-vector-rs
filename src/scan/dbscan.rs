@@ -409,7 +409,7 @@ DELETE FROM pv_package_duplicate WHERE package=$1 AND version=$2 AND repo=$3"#,
             let value =
                 std::str::from_utf8(d)
                     .ok()
-                    .and_then(|x| if x.is_empty() { None } else { Some(x) });
+                    .filter(|&x| !x.is_empty());
             if let Some(value) = value {
                 sqlx::query!(
                     "INSERT INTO pv_package_dependencies VALUES($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT pv_package_dependencies_pkey DO UPDATE SET value = $5",
@@ -675,7 +675,7 @@ fn open_deb_advanced<'a, R: Read + 'a>(
                 maintainer: must_have!(meta, "Maintainer"),
                 features: meta
                     .remove("X-AOSC-Features".as_bytes())
-                    .map(|x| String::from_utf8_lossy(&x).to_string()),
+                    .map(|x| String::from_utf8_lossy(x).to_string()),
                 extra: collect_left_over_fields(meta),
                 debtime,
             });

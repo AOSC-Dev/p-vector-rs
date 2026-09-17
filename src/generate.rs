@@ -137,7 +137,7 @@ fn scan_release_files(branch_root: &Path) -> Result<Vec<(String, u64, String)>> 
 
 fn swap_for_acquire_by_hash(branch_root: &Path, files: &[(String, u64, String)]) -> Result<()> {
     for (path, _, sha256) in files {
-        swap_file_for_acquire_by_hash(&branch_root, path, sha256)?;
+        swap_file_for_acquire_by_hash(branch_root, path, sha256)?;
     }
 
     Ok(())
@@ -413,13 +413,7 @@ GROUP BY df.path, df.name"#,
             let bin = lines
                 .into_iter()
                 .filter_map(|s| {
-                    s.p.and_then(|s| {
-                        if s.contains("usr/bin/") {
-                            Some(s)
-                        } else {
-                            None
-                        }
-                    })
+                    s.p.filter(|s| s.contains("usr/bin/"))
                 })
                 .collect::<String>();
             let mut f3 = File::create(dist_path_bin).await?;

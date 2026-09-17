@@ -55,13 +55,11 @@ WHERE pv_repos.name = deleted_branches.name"
 
 fn clean_by_hash_files_inner(byhash_path: &Path, files_to_keep: usize) -> Result<()> {
     let mut byhash_files = Vec::new();
-    for entry in walkdir::WalkDir::new(&byhash_path) {
-        if let Ok(entry) = entry {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            byhash_files.push((entry.metadata()?.modified()?, entry.path().to_path_buf()));
+    for entry in walkdir::WalkDir::new(byhash_path).into_iter().flatten() {
+        if !entry.file_type().is_file() {
+            continue;
         }
+        byhash_files.push((entry.metadata()?.modified()?, entry.path().to_path_buf()));
     }
 
     let num_files = byhash_files.len();
@@ -86,33 +84,29 @@ pub fn clean_by_hash_files(branch_root: &Path, copies_to_keep: isize) -> Result<
 
     let mut last_count = 0usize;
     // try to guess how many files should be kept
-    for entry in walkdir::WalkDir::new(&branch_root) {
-        if let Ok(entry) = entry {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            if !entry
-                .path()
-                .parent()
-                .map(|p| p.ends_with("by-hash/SHA256"))
-                .unwrap_or_default()
-            {
-                last_count += 1;
-            }
+    for entry in walkdir::WalkDir::new(branch_root).into_iter().flatten() {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        if !entry
+            .path()
+            .parent()
+            .map(|p| p.ends_with("by-hash/SHA256"))
+            .unwrap_or_default()
+        {
+            last_count += 1;
         }
     }
 
     let files_to_keep = last_count * (copies_to_keep as usize);
     info!("Keeping {} by-hash files in the branches", files_to_keep);
     // execute the clean-up
-    for entry in walkdir::WalkDir::new(&branch_root) {
-        if let Ok(entry) = entry {
-            if !entry.file_type().is_dir() {
-                continue;
-            }
-            if entry.path().ends_with("by-hash/SHA256") {
-                clean_by_hash_files_inner(entry.path(), files_to_keep)?;
-            }
+    for entry in walkdir::WalkDir::new(branch_root).into_iter().flatten() {
+        if !entry.file_type().is_dir() {
+            continue;
+        }
+        if entry.path().ends_with("by-hash/SHA256") {
+            clean_by_hash_files_inner(entry.path(), files_to_keep)?;
         }
     }
 

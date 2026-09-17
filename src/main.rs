@@ -120,14 +120,12 @@ async fn gc_action(config: &config::Config, pool: &PgPool) -> Result<()> {
     if let Some(acquire_by_hash) = &config.config.acquire_by_hash {
         let acquire_by_hash = *acquire_by_hash;
         tokio::task::spawn_blocking(move || {
-            for i in walkdir::WalkDir::new(mirror_root.join("dists"))
+            for entry in walkdir::WalkDir::new(mirror_root.join("dists"))
                 .min_depth(1)
-                .max_depth(1)
+                .max_depth(1).into_iter().flatten()
             {
-                if let Ok(entry) = i {
-                    if entry.file_type().is_dir() {
-                        gc::clean_by_hash_files(entry.path(), acquire_by_hash).ok();
-                    }
+                if entry.file_type().is_dir() {
+                    gc::clean_by_hash_files(entry.path(), acquire_by_hash).ok();
                 }
             }
         })
